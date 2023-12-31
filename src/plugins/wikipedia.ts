@@ -1,8 +1,10 @@
 import { URL } from 'node:url';
-import debug from 'debug';
 import { get } from '../utils/got.js';
 import summary from '../summary.js';
 import clip from './../utils/clip.js';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const log = (_: string): void => { return; };
 
 export function test(url: URL): boolean {
 	if (!url.hostname) return false;
@@ -21,6 +23,7 @@ export async function summarize(url: URL): Promise<summary> {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let body = await get(endpoint) as any;
 	body = JSON.parse(body);
+	log(body);
 
 	if (!('query' in body) || !('pages' in body.query)) {
 		throw new Error('fetch failed');
