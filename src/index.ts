@@ -1,20 +1,20 @@
 /**
  * summaly
- * https://github.com/syuilo/summaly
+ * https://github.com/misskey-dev/summaly
  */
 
 import { URL } from 'node:url';
 import tracer from 'trace-redirect';
-import Summary from './summary.js';
-import type { IPlugin as _IPlugin } from './iplugin.js';
-export type IPlugin = _IPlugin;
-import general from './general.js';
 import * as Got from 'got';
+import { SummalyResult } from './summary.js';
+import { SummalyPlugin } from './iplugin.js';
+export * from './iplugin.js';
+import general from './general.js';
 import { setAgent } from './utils/got.js';
-import type { FastifyInstance } from 'fastify';
 import { plugins as builtinPlugins } from './plugins/index.js';
+import type { FastifyInstance } from 'fastify';
 
-type Options = {
+export type SummalyOptions = {
 	/**
 	 * Accept-Language for the request
 	 */
@@ -28,7 +28,7 @@ type Options = {
 	/**
 	 * Custom Plugins
 	 */
-	plugins?: IPlugin[];
+	plugins?: SummalyPlugin[];
 
 	/**
 	 * Custom HTTP agent
@@ -36,26 +36,19 @@ type Options = {
 	agent?: Got.Agents;
 };
 
-type Result = Summary & {
-	/**
-	 * The actual url of that web page
-	 */
-	url: string;
-};
-
-const defaultOptions = {
+export const summalyDefaultOptions = {
 	lang: null,
 	followRedirects: true,
 	plugins: [],
-} as Options;
+} as SummalyOptions;
 
 /**
  * Summarize an web page
  */
-export const summaly = async (url: string, options?: Options): Promise<Result> => {
+export const summaly = async (url: string, options?: SummalyOptions): Promise<SummalyResult> => {
 	if (options?.agent) setAgent(options.agent);
 
-	const opts = Object.assign(defaultOptions, options);
+	const opts = Object.assign(summalyDefaultOptions, options);
 
 	const plugins = builtinPlugins.concat(opts.plugins || []);
 
@@ -68,25 +61,26 @@ export const summaly = async (url: string, options?: Options): Promise<Result> =
 			actualUrl = url;
 		}
 	}
- 
+
 	const _url = new URL(actualUrl);
 
 	// Find matching plugin
 	const match = plugins.filter(plugin => plugin.test(_url))[0];
 
 	// Get summary
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	const summary = await (match ? match.summarize : general)(_url, opts.lang || undefined);
 
 	if (summary == null) {
-		throw 'failed summarize';
+		throw new Error('failed summarize');
 	}
 
 	return Object.assign(summary, {
-		url: actualUrl
+		url: actualUrl,
 	});
 };
 
-export default function (fastify: FastifyInstance, options: Options, done: (err?: Error) => void) {
+export default function (fastify: FastifyInstance, options: SummalyOptions, done: (err?: Error) => void) {
 	fastify.get<{
         Querystring: {
 				url?: string;
@@ -94,9 +88,10 @@ export default function (fastify: FastifyInstance, options: Options, done: (err?
 			};
 	}>('/', async (req, reply) => {
 		const url = req.query.url as string;
+		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 		if (url == null) {
 			return reply.status(400).send({
-				error: 'url is required'
+				error: 'url is required',
 			});
 		}
 
@@ -110,7 +105,7 @@ export default function (fastify: FastifyInstance, options: Options, done: (err?
 			return summary;
 		} catch (e) {
 			return reply.status(500).send({
-				error: e
+				error: e,
 			});
 		}
 	});

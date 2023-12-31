@@ -8,13 +8,13 @@
 
 import fs, { readdirSync } from 'node:fs';
 import process from 'node:process';
-import fastify from 'fastify';
-import { summaly } from '../src/index.js';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, jest, test, describe, beforeEach, afterEach } from '@jest/globals';
 import { Agent as httpAgent } from 'node:http';
 import { Agent as httpsAgent } from 'node:https';
+import { expect, test, describe, beforeEach, afterEach } from '@jest/globals';
+import fastify from 'fastify';
+import { summaly } from '../src/index.js';
 import { StatusError } from '../src/utils/status-error.js';
 
 const _filename = fileURLToPath(import.meta.url);
@@ -35,7 +35,6 @@ const host = `http://localhost:${port}`;
 process.on('unhandledRejection', console.dir);
 
 let app: ReturnType<typeof fastify> | null = null;
-let n = 0;
 
 afterEach(async () => {
 	if (app) {
@@ -45,6 +44,65 @@ afterEach(async () => {
 });
 
 /* tests below */
+
+test('basic', async () => {
+	app = fastify();
+	app.get('/', (request, reply) => {
+		return reply.send(fs.createReadStream(_dirname + '/htmls/basic.html'));
+	});
+	await app.listen({ port });
+	expect(await summaly(host)).toEqual({
+		title: 'KISS principle',
+		icon: null,
+		description: null,
+		thumbnail: null,
+		player: {
+			url: null,
+			width: null,
+			height: null,
+			'allow': [
+				'autoplay',
+				'encrypted-media',
+				'fullscreen',
+			],
+		},
+		sitename: 'localhost:3060',
+		sensitive: false,
+		url: host,
+		activityPub: null,
+	});
+});
+
+test('Stage Bye Stage', async () => {
+	// If this test fails, you must rewrite the result data and the example in README.md.
+
+	const summary = await summaly('https://www.youtube.com/watch?v=NMIEAhH_fTU');
+	expect(summary).toEqual(
+		{
+			'title': '【アイドルマスター】「Stage Bye Stage」(歌：島村卯月、渋谷凛、本田未央)',
+			'icon': 'https://www.youtube.com/s/desktop/28b0985e/img/favicon.ico',
+			'description': 'Website▶https://columbia.jp/idolmaster/Playlist▶https://www.youtube.com/playlist?list=PL83A2998CF3BBC86D2018年7月18日発売予定THE IDOLM@STER CINDERELLA GIRLS CG STAR...',
+			'thumbnail': 'https://i.ytimg.com/vi/NMIEAhH_fTU/maxresdefault.jpg',
+			'player': {
+				'url': 'https://www.youtube.com/embed/NMIEAhH_fTU?feature=oembed',
+				'width': 200,
+				'height': 113,
+				'allow': [
+					'autoplay',
+					'clipboard-write',
+					'encrypted-media',
+					'picture-in-picture',
+					'web-share',
+					'fullscreen',
+				],
+			},
+			'sitename': 'YouTube',
+			'sensitive': false,
+			'activityPub': null,
+			'url': 'https://www.youtube.com/watch?v=NMIEAhH_fTU',
+		},
+	);
+});
 
 test('faviconがHTML上で指定されていないが、ルートに存在する場合、正しく設定される', async () => {
 	app = fastify();
@@ -105,7 +163,7 @@ describe('Private IP blocking', () => {
 			agent: {
 				http: new httpAgent({ keepAlive: true }),
 				https: new httpsAgent({ keepAlive: true }),
-			}
+			},
 		});
 		expect(summary.title).toBe('Strawberry Pasta');
 	});
@@ -240,7 +298,7 @@ describe('TwitterCard', () => {
 	});
 });
 
-describe("oEmbed", () => {
+describe('oEmbed', () => {
 	const setUpFastify = async (oEmbedPath: string, htmlPath = 'htmls/oembed.html') => {
 		app = fastify();
 		app.get('/', (request, reply) => {
@@ -248,11 +306,11 @@ describe("oEmbed", () => {
 		});
 		app.get('/oembed.json', (request, reply) => {
 			return reply.send(fs.createReadStream(
-				new URL(oEmbedPath, new URL('oembed/', import.meta.url))
+				new URL(oEmbedPath, new URL('oembed/', import.meta.url)),
 			));
 		});
 		await app.listen({ port });
-	}
+	};
 
 	for (const filename of readdirSync(new URL('oembed/invalid', import.meta.url))) {
 		test(`Invalidity test: ${filename}`, async () => {
@@ -391,5 +449,25 @@ describe('ActivityPub', () => {
 
 		const summary = await summaly(host);
 		expect(summary.activityPub).toBe(null);
+	});
+});
+
+describe('sensitive', () => {
+	test('default', async () => {
+		app = fastify();
+		app.get('/', (request, reply) => {
+			return reply.send(fs.createReadStream(_dirname + '/htmls/basic.html'));
+		});
+		await app.listen({ port });
+		expect((await summaly(host)).sensitive).toBe(false);
+	});
+
+	test('mixi:content-rating 1', async () => {
+		app = fastify();
+		app.get('/', (request, reply) => {
+			return reply.send(fs.createReadStream(_dirname + '/htmls/mixi-sensitive.html'));
+		});
+		await app.listen({ port });
+		expect((await summaly(host)).sensitive).toBe(true);
 	});
 });
