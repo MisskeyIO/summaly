@@ -1,12 +1,11 @@
 import { URL } from 'node:url';
+import { decode as decodeHtml } from 'html-entities';
+import * as cheerio from 'cheerio';
 import clip from './utils/clip.js';
 import cleanupTitle from './utils/cleanup-title.js';
 
-import { decode as decodeHtml } from 'html-entities';
-
 import { get, head, scpaping } from './utils/got.js';
 import type { default as Summary, Player } from './summary.js';
-import * as cheerio from 'cheerio';
 
 /**
  * Contains only the html snippet for a sanitized iframe as the thumbnail is
@@ -23,7 +22,7 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
 	const oEmbedUrl = (() => {
 		try {
 			return new URL(href, pageUrl);
-		} catch { return null }
+		} catch { return null; }
 	})();
 	if (!oEmbedUrl) {
 		return null;
@@ -37,7 +36,7 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
 	const body = (() => {
 		try {
 			return JSON.parse(oEmbed);
-		} catch {}
+		} catch { /* empty */ }
 	})();
 
 	if (!body || body.version !== '1.0' || !['rich', 'video'].includes(body.type)) {
@@ -51,7 +50,7 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
 	}
 
 	const oEmbedHtml = cheerio.load(body.html);
-	const iframe = oEmbedHtml("iframe");
+	const iframe = oEmbedHtml('iframe');
 
 	if (iframe.length !== 1) {
 		// Somehow we either have multiple iframes or none
@@ -127,24 +126,35 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
 		url,
 		width,
 		height,
-		allow: allowedPermissions
-	}
+		allow: allowedPermissions,
+	};
 }
 
 export default async (_url: URL | string, lang: string | null = null): Promise<Summary | null> => {
+	// eslint-disable-next-line no-param-reassign
 	if (lang && !lang.match(/^[\w-]+(\s*,\s*[\w-]+)*$/)) lang = null;
 
 	const url = typeof _url === 'string' ? new URL(_url) : _url;
 
 	const res = await scpaping(url.href, { lang: lang || undefined });
 	const $ = res.$;
-	const twitterCard = $('meta[property="twitter:card"]').attr('content');
+	const twitterCard =
+		$('meta[name="twitter:card"]').attr('content') ||
+		$('meta[property="twitter:card"]').attr('content');
+
+	// According to docs, name attribute of meta tag is used for twitter card but for compatibility,
+	// this library will also look for property attribute.
+	// See https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/summary
+	// Property attribute is used for open graph.
+	// See https://ogp.me/
 
 	let title: string | null | undefined =
 		$('meta[property="og:title"]').attr('content') ||
+		$('meta[name="twitter:title"]').attr('content') ||
 		$('meta[property="twitter:title"]').attr('content') ||
 		$('title').text();
 
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	if (title === undefined || title === null) {
 		return null;
 	}
@@ -153,6 +163,7 @@ export default async (_url: URL | string, lang: string | null = null): Promise<S
 
 	let image: string | null | undefined =
 		$('meta[property="og:image"]').attr('content') ||
+		$('meta[name="twitter:image"]').attr('content') ||
 		$('meta[property="twitter:image"]').attr('content') ||
 		$('link[rel="image_src"]').attr('href') ||
 		$('link[rel="apple-touch-icon"]').attr('href') ||
@@ -161,26 +172,27 @@ export default async (_url: URL | string, lang: string | null = null): Promise<S
 	image = image ? (new URL(image, url.href)).href : null;
 
 	const playerUrl =
-		(twitterCard !== 'summary_large_image' && $('meta[property="twitter:player"]').attr('content')) ||
 		(twitterCard !== 'summary_large_image' && $('meta[name="twitter:player"]').attr('content')) ||
+		(twitterCard !== 'summary_large_image' && $('meta[property="twitter:player"]').attr('content')) ||
 		$('meta[property="og:video"]').attr('content') ||
 		$('meta[property="og:video:secure_url"]').attr('content') ||
 		$('meta[property="og:video:url"]').attr('content');
 
 	const playerWidth = parseInt(
-		$('meta[property="twitter:player:width"]').attr('content') ||
 		$('meta[name="twitter:player:width"]').attr('content') ||
+		$('meta[property="twitter:player:width"]').attr('content') ||
 		$('meta[property="og:video:width"]').attr('content') ||
 		'');
 
 	const playerHeight = parseInt(
-		$('meta[property="twitter:player:height"]').attr('content') ||
 		$('meta[name="twitter:player:height"]').attr('content') ||
+		$('meta[property="twitter:player:height"]').attr('content') ||
 		$('meta[property="og:video:height"]').attr('content') ||
 		'');
 
 	let description: string | null | undefined =
 		$('meta[property="og:description"]').attr('content') ||
+		$('meta[name="twitter:description"]').attr('content') ||
 		$('meta[property="twitter:description"]').attr('content') ||
 		$('meta[name="description"]').attr('content');
 
@@ -192,10 +204,10 @@ export default async (_url: URL | string, lang: string | null = null): Promise<S
 		description = null;
 	}
 
-	let siteName = decodeHtml(
+	const siteName = decodeHtml(
 		$('meta[property="og:site_name"]').attr('content') ||
 		$('meta[name="application-name"]').attr('content') ||
-		url.hostname
+		url.host,
 	);
 
 	const favicon =
@@ -206,7 +218,9 @@ export default async (_url: URL | string, lang: string | null = null): Promise<S
 	const activityPub =
 		$('link[rel="alternate"][type="application/activity+json"]').attr('href') || null;
 
-	const sensitive = $('.tweet').attr('data-possibly-sensitive') === 'true'
+	// https://developer.mixi.co.jp/connect/mixi_plugin/mixi_check/spec_mixi_check/#toc-18-
+	const sensitive =
+		$('meta[property=\'mixi:content-rating\']').attr('content') === '1';
 
 	const find = async (path: string) => {
 		const target = new URL(path, url.href);
@@ -220,12 +234,12 @@ export default async (_url: URL | string, lang: string | null = null): Promise<S
 
 	const getIcon = async () => {
 		return (await find(favicon)) || null;
-	}
+	};
 
 	const [icon, oEmbed] = await Promise.all([
 		getIcon(),
 		getOEmbedPlayer($, url.href),
-	])
+	]);
 
 	// Clean up the title
 	title = cleanupTitle(title, siteName);

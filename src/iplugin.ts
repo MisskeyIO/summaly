@@ -1,7 +1,7 @@
-import type { URL } from 'node:url';
 import Summary from './summary.js';
+import type { URL } from 'node:url';
 
-export interface IPlugin {
+export interface SummalyPlugin {
 	test: (url: URL) => boolean;
-	summarize: (url: URL, lang?: string) => Promise<Summary>;
+	summarize: (url: URL, lang?: string) => Promise<Summary | null>;
 }

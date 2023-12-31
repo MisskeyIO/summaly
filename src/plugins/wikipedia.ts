@@ -3,6 +3,9 @@ import { get } from '../utils/got.js';
 import summary from '../summary.js';
 import clip from './../utils/clip.js';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const log = (_: string): void => { return; };
+
 export function test(url: URL): boolean {
 	if (!url.hostname) return false;
 	return /\.wikipedia\.org$/.test(url.hostname);
@@ -13,11 +16,17 @@ export async function summarize(url: URL): Promise<summary> {
 	const title = url.pathname ? url.pathname.split('/')[2] : null;
 	const endpoint = `https://${lang}.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro=&explaintext=&titles=${title}`;
 
+	log(`lang is ${lang}`);
+	log(`title is ${title}`);
+	log(`endpoint is ${endpoint}`);
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let body = await get(endpoint) as any;
 	body = JSON.parse(body);
+	log(body);
 
 	if (!('query' in body) || !('pages' in body.query)) {
-		throw 'fetch failed';
+		throw new Error('fetch failed');
 	}
 
 	const info = body.query.pages[Object.keys(body.query.pages)[0]];
