@@ -1,25 +1,23 @@
 import iconv from 'iconv-lite';
-import jschardet from 'jschardet';
+import * as Got from 'got';
 
 const regCharset = new RegExp(/charset\s*=\s*["']?([\w-]+)/, 'i');
 
 /**
  * Detect HTML encoding
- * @param body Body in Buffer
+ * @param response Response
  * @returns encoding
  */
-export function detectEncoding(body: Buffer): string {
-	// By detection
-	const detected = jschardet.detect(body, { minimumThreshold: 0.99 });
-	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-	if (detected) {
-		const candicate = detected.encoding;
+export function detectEncoding(response: Got.Response<string>): string {
+	const matchContentType = response.headers['content-type']?.match(regCharset);
+	if (matchContentType) {
+		const candicate = matchContentType[1];
 		const encoding = toEncoding(candicate);
 		if (encoding != null) return encoding;
 	}
 
 	// From meta
-	const matchMeta = body.toString('ascii').match(regCharset);
+	const matchMeta = response.rawBody.toString('ascii').match(regCharset);
 	if (matchMeta) {
 		const candicate = matchMeta[1];
 		const encoding = toEncoding(candicate);
