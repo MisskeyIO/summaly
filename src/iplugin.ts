@@ -1,8 +1,8 @@
-import Summary from './summary.js';
 import type { URL } from 'node:url';
-import { GeneralScrapingOptions } from '@/general';
+import type { GeneralScrapingOptions } from '@/general.js';
+import type Summary from './summary.js';
 
 export interface SummalyPlugin {
-	test: (url: URL) => boolean;
-	summarize: (url: URL, opts?: GeneralScrapingOptions) => Promise<Summary | null>;
+  test: (url: URL) => boolean;
+  summarize: (url: URL, opts?: GeneralScrapingOptions) => Promise<Summary | null>;
 }
