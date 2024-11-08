@@ -9,7 +9,7 @@ import type * as Got from 'got';
 import { got } from 'got';
 import general, { type GeneralScrapingOptions } from './general.js';
 import type { SummalyPlugin } from './iplugin.js';
-import { plugins as builtinPlugins } from './plugins/index.js';
+import { plugins as builtinPlugins } from './plugins/_.js';
 import type { SummalyResult } from './summary.js';
 import { DEFAULT_OPERATION_TIMEOUT, DEFAULT_RESPONSE_TIMEOUT, agent, setAgent } from './utils/got.js';
 
@@ -84,7 +84,6 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
 
   let actualUrl = url;
   if (opts.followRedirects) {
-    // .catch(() => url)にすればいいけど、jestにtrace-redirectを食わせるのが面倒なのでtry-catch
     try {
       const timeout = opts.responseTimeout ?? DEFAULT_RESPONSE_TIMEOUT;
       const operationTimeout = opts.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
