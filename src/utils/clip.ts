@@ -1,16 +1,9 @@
-import nullOrEmpty from './null-or-empty.js';
+export default function (_s: string | null | undefined, max: number): string {
+  const s = _s?.trim() ?? '';
 
-export default function(s: string, max: number): string {
-	if (nullOrEmpty(s)) {
-		return s;
-	}
-
-	// eslint-disable-next-line no-param-reassign
-	s = s.trim();
-
-	if (s.length > max) {
-		return s.substr(0, max) + '...';
-	} else {
-		return s;
-	}
+  if (s.length > max) {
+    return `${s.substring(0, max)}...`;
+  } else {
+    return s;
+  }
 }
