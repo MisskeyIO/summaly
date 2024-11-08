@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+    tags:
 
   workflow_dispatch:
 
@@ -31,13 +32,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare image tags
+        run: |
+          echo "FORMATTED_BRANCH_NAME=$(echo ${{ github.ref_name }} | sed -e 's/\//-/g' )" >> $GITHUB_ENV
       - name: Build and Push to GitHub Container Registry
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
           push: true
           platforms: ${{ steps.buildx.outputs.platforms }}
           provenance: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: ${{ env.FORMATTED_BRANCH_NAME }}
+          tags: |
+            ghcr.io/misskeyio/summaly:latest
+            ghcr.io/misskeyio/summaly:${{ env.FORMATTED_BRANCH_NAME }}
