@@ -6,6 +6,7 @@ ENV NODE_ENV=production
 
 COPY ./ ./
 RUN corepack enable \
+ && pnpm setup \
  && pnpm i --frozen-lockfile --aggregate-output \
  && pnpm install -g fastify-cli
 
