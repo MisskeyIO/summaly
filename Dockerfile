@@ -17,7 +17,7 @@ COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
 RUN corepack enable \
  && pnpm i --frozen-lockfile --aggregate-output
 
-COPY --from=builder /app/built ./built
+COPY --from=builder /app/dist ./dist
 
 CMD ["pnpm", "run", "serve"]
 

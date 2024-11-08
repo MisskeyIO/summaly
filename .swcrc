@@ -1,24 +1,23 @@
 {
-    "$schema": "https://json.schemastore.org/swcrc",
-    "jsc": {
-        "parser": {
-            "syntax": "typescript",
-            "dynamicImport": true,
-            "decorators": true
-        },
-        "transform": {
-            "legacyDecorator": true,
-            "decoratorMetadata": true
-        },
-        "experimental": {
-            "keepImportAssertions": true
-        },
-        "baseUrl": ".",
-        "paths": {},
-        "target": "es2021"
+  "$schema": "https://json.schemastore.org/swcrc",
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "dynamicImport": true,
+      "decorators": true
     },
-    "module": {
-      "type": "es6"
+    "transform": {
+      "legacyDecorator": true,
+      "decoratorMetadata": true
     },
-    "minify": true
+    "experimental": {
+      "keepImportAssertions": true
+    },
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"]
+    },
+    "target": "es2022"
+  },
+  "minify": false
 }

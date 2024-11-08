@@ -1,9 +1,11 @@
-name: Lint
+name: Publish package to GitHub Packages
 
-on: [push, pull_request]
+on:
+  release:
+    types: [published]
 
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-latest
 
     strategy:
@@ -21,11 +23,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@MisskeyIO'
           cache: 'pnpm'
       - name: Install
         run: |
           corepack enable
           pnpm i --frozen-lockfile
-      - name: Check
+      - name: Build
         run: |
-          pnpm check
+          pnpm build
+      - name: Publish
+        run: |
+          pnpm publish --access public --no-git-checks --report-summary
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
