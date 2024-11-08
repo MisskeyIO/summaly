@@ -29,7 +29,6 @@ RUN pnpm i --frozen-lockfile --aggregate-output
 RUN pnpm install fastify-cli
 
 RUN corepack pack
-ENV COREPACK_ENABLE_NETWORK=0
 
 ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so
 ENV MALLOC_CONF=background_thread:true,metadata_thp:auto,dirty_decay_ms:30000,muzzy_decay_ms:30000
