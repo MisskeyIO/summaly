@@ -23,7 +23,6 @@
     "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "rootDir": "./src",
     "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"]
@@ -34,5 +33,6 @@
     "lib": ["esnext"]
   },
   "compileOnSave": false,
-  "include": ["./src/**/*.ts"]
+  "include": ["./src/**/*"],
+  "exclude": ["node_modules", "test/**/*"]
 }
