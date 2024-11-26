@@ -8,6 +8,5 @@ export type GeneralScrapingOptions = {
     contentLengthLimit?: number;
     contentLengthRequired?: boolean;
 };
-declare const _default: (_url: URL | string, opts?: GeneralScrapingOptions) => Promise<Summary | null>;
-export default _default;
+export declare function parseGeneral(_url: URL | string, opts?: GeneralScrapingOptions): Promise<Summary | null>;
 //# sourceMappingURL=general.d.ts.map

@@ -133,7 +133,19 @@ export type GeneralScrapingOptions = {
   contentLengthRequired?: boolean;
 };
 
-export default async (_url: URL | string, opts?: GeneralScrapingOptions): Promise<Summary | null> => {
+function headerEqualValueContains(search: string, headerValue: string | string[] | undefined) {
+  if (!headerValue) {
+    return false;
+  }
+
+  if (Array.isArray(headerValue)) {
+    return headerValue.some(value => value.toLowerCase() === search.toLowerCase());
+  }
+
+  return headerValue.toLowerCase() === search.toLowerCase();
+}
+
+export async function parseGeneral(_url: URL | string, opts?: GeneralScrapingOptions): Promise<Summary | null> {
   let lang = opts?.lang;
   // eslint-disable-next-line no-param-reassign
   if (lang && !RegExp(/^[\w-]+(\s*,\s*[\w-]+)*$/).exec(lang)) lang = null;
@@ -225,7 +237,12 @@ export default async (_url: URL | string, opts?: GeneralScrapingOptions): Promis
   const activityPub = $('link[rel="alternate"][type="application/activity+json"]').attr('href') || null;
 
   // https://developer.mixi.co.jp/connect/mixi_plugin/mixi_check/spec_mixi_check/#toc-18-
-  const sensitive = $("meta[property='mixi:content-rating']").attr('content') === '1';
+  const sensitive =
+    $("meta[property='mixi:content-rating']").attr('content') === '1' ||
+    headerEqualValueContains('adult', res.response.headers.rating) ||
+    headerEqualValueContains('RTA-5042-1996-1400-1577-RTA', res.response.headers.rating) ||
+    $("meta[name='rating']").attr('content') === 'adult' ||
+    $("meta[name='rating']").attr('content')?.toUpperCase() === 'RTA-5042-1996-1400-1577-RTA';
 
   const find = async (path: string) => {
     const target = new URL(path, url.href);
@@ -265,4 +282,4 @@ export default async (_url: URL | string, opts?: GeneralScrapingOptions): Promis
     sensitive,
     activityPub,
   };
-};
+}
