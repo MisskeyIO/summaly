@@ -3,6 +3,7 @@
  * https://github.com/misskey-dev/summaly
  */
 
+import { EventEmitter } from 'node:events';
 import { URL } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import type * as Got from 'got';
@@ -12,6 +13,8 @@ import type { SummalyPlugin } from './iplugin.js';
 import { plugins as builtinPlugins } from './plugins/_.js';
 import type { SummalyResult } from './summary.js';
 import { DEFAULT_OPERATION_TIMEOUT, DEFAULT_RESPONSE_TIMEOUT, agent, setAgent } from './utils/got.js';
+
+EventEmitter.defaultMaxListeners = 25;
 
 export * from './iplugin.js';
 
