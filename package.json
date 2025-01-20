@@ -25,7 +25,7 @@
     "@biomejs/biome": "1.9.4",
     "@jest/globals": "29.7.0",
     "@swc/cli": "0.5.2",
-    "@swc/core": "1.10.1",
+    "@swc/core": "1.10.4",
     "@swc/jest": "0.2.37",
     "@types/cheerio": "0.22.35",
     "@types/debug": "4.1.12",
