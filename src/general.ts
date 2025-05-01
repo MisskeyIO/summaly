@@ -127,11 +127,31 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
 export type GeneralScrapingOptions = {
   lang?: string | null;
   userAgent?: string;
+  followRedirects?: boolean;
   responseTimeout?: number;
   operationTimeout?: number;
   contentLengthLimit?: number;
   contentLengthRequired?: boolean;
 };
+
+export async function general(_url: URL | string, opts?: GeneralScrapingOptions): Promise<Summary | null> {
+  let lang = opts?.lang;
+  if (lang && !lang.match(/^[\w-]+(\s*,\s*[\w-]+)*$/)) lang = null;
+
+  const url = typeof _url === 'string' ? new URL(_url) : _url;
+
+  const res = await scpaping(url.href, {
+    lang: lang || undefined,
+    userAgent: opts?.userAgent,
+    followRedirects: opts?.followRedirects,
+    responseTimeout: opts?.responseTimeout,
+    operationTimeout: opts?.operationTimeout,
+    contentLengthLimit: opts?.contentLengthLimit,
+    contentLengthRequired: opts?.contentLengthRequired,
+  });
+
+  return await parseGeneral(url, res);
+}
 
 function headerEqualValueContains(search: string, headerValue: string | string[] | undefined) {
   if (!headerValue) {
@@ -145,21 +165,11 @@ function headerEqualValueContains(search: string, headerValue: string | string[]
   return headerValue.toLowerCase() === search.toLowerCase();
 }
 
-export async function parseGeneral(_url: URL | string, opts?: GeneralScrapingOptions): Promise<Summary | null> {
-  let lang = opts?.lang;
-  // eslint-disable-next-line no-param-reassign
-  if (lang && !RegExp(/^[\w-]+(\s*,\s*[\w-]+)*$/).exec(lang)) lang = null;
-
+export async function parseGeneral(
+  _url: URL | string,
+  res: Awaited<ReturnType<typeof scpaping>>,
+): Promise<Summary | null> {
   const url = typeof _url === 'string' ? new URL(_url) : _url;
-
-  const res = await scpaping(url.href, {
-    lang: lang || undefined,
-    userAgent: opts?.userAgent,
-    responseTimeout: opts?.responseTimeout,
-    operationTimeout: opts?.operationTimeout,
-    contentLengthLimit: opts?.contentLengthLimit,
-    contentLengthRequired: opts?.contentLengthRequired,
-  });
   const $ = res.$;
   const twitterCard =
     $('meta[name="twitter:card"]').attr('content') || $('meta[property="twitter:card"]').attr('content');
@@ -236,6 +246,8 @@ export async function parseGeneral(_url: URL | string, opts?: GeneralScrapingOpt
 
   const activityPub = $('link[rel="alternate"][type="application/activity+json"]').attr('href') || null;
 
+  const fediverseCreator: string | null = $("meta[name='fediverse:creator']").attr('content') || null;
+
   // https://developer.mixi.co.jp/connect/mixi_plugin/mixi_check/spec_mixi_check/#toc-18-
   const sensitive =
     $("meta[property='mixi:content-rating']").attr('content') === '1' ||
@@ -281,5 +293,6 @@ export async function parseGeneral(_url: URL | string, opts?: GeneralScrapingOpt
     sitename: siteName || null,
     sensitive,
     activityPub,
+    fediverseCreator,
   };
 }

@@ -1,1 +1,1 @@
-import{parseGeneral}from"../general.js";export function test(url){return/^[a-zA-Z0-9]+\.app\.link$/.test(url.hostname)||url.hostname==="spotify.link"}export async function summarize(url,opts){url.searchParams.append("$web_only","true");return await parseGeneral(url,opts)}
+import{general}from"../general.js";export function test(url){return/^[a-zA-Z0-9]+\.app\.link$/.test(url.hostname)||url.hostname==="spotify.link"}export async function summarize(url,opts){url.searchParams.append("$web_only","true");return await general(url,opts)}

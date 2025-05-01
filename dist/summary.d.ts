@@ -31,6 +31,10 @@ type Summary = {
      * The url of the ActivityPub representation of that web page
      */
     activityPub: string | null;
+    /**
+     * The @ handle of a fediverse user (https://blog.joinmastodon.org/2024/07/highlighting-journalism-on-mastodon/)
+     */
+    fediverseCreator: string | null;
 };
 export type SummalyResult = Summary & {
     /**

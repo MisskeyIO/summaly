@@ -8,7 +8,7 @@ import { URL } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import type * as Got from 'got';
 import { got } from 'got';
-import { type GeneralScrapingOptions, parseGeneral } from './general.js';
+import { type GeneralScrapingOptions, general } from './general.js';
 import type { SummalyPlugin } from './iplugin.js';
 import { plugins as builtinPlugins } from './plugins/_.js';
 import type { SummalyResult } from './summary.js';
@@ -123,13 +123,14 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
     lang: opts.lang,
     userAgent: opts.userAgent,
     responseTimeout: opts.responseTimeout,
+    followRedirects: opts.followRedirects,
     operationTimeout: opts.operationTimeout,
     contentLengthLimit: opts.contentLengthLimit,
     contentLengthRequired: opts.contentLengthRequired,
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const summary = await (match ? match.summarize : parseGeneral)(_url, scrapingOptions);
+  const summary = await (match ? match.summarize : general)(_url, scrapingOptions);
 
   if (summary == null) {
     throw new Error('failed summarize');
@@ -157,11 +158,13 @@ export default function (fastify: FastifyInstance, options: SummalyOptions, done
     }
 
     try {
-      return await summaly(url, {
+      const summary = await summaly(url, {
         lang: req.query.lang as string,
         followRedirects: false,
         ...options,
       });
+
+      return summary;
     } catch (e) {
       return reply.status(500).send({
         error: e,

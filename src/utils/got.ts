@@ -1,6 +1,8 @@
+import dns, { promises as dnsPromises } from 'node:dns';
 import { readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { GeneralScrapingOptions } from '@/general.js';
 import * as cheerio from 'cheerio';
 import got, * as Got from 'got';
 import PrivateIp from 'private-ip';
@@ -13,6 +15,7 @@ const _dirname = dirname(_filename);
 export let agent: Got.Agents = {};
 
 export function setAgent(_agent: Got.Agents) {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   agent = _agent || {};
 }
 
@@ -22,6 +25,7 @@ export type GotOptions = {
   body?: string;
   headers: Record<string, string | undefined>;
   typeFilter?: RegExp;
+  followRedirects?: boolean;
   responseTimeout?: number;
   operationTimeout?: number;
   contentLengthLimit?: number;
@@ -35,41 +39,25 @@ export const DEFAULT_OPERATION_TIMEOUT = 60 * 1000;
 export const DEFAULT_MAX_RESPONSE_SIZE = 10 * 1024 * 1024;
 export const DEFAULT_BOT_UA = `SummalyBot/${repo.version}`;
 
-export async function scpaping(
-  url: string,
-  opts?: {
-    lang?: string;
-    userAgent?: string;
-    responseTimeout?: number;
-    operationTimeout?: number;
-    contentLengthLimit?: number;
-    contentLengthRequired?: boolean;
-  },
-) {
-  const args: Omit<GotOptions, 'method'> = {
+export function getGotOptions(url: string, opts?: GeneralScrapingOptions): Omit<GotOptions, 'method'> {
+  return {
     url,
     headers: {
       accept: 'text/html,application/xhtml+xml',
       'user-agent': opts?.userAgent ?? DEFAULT_BOT_UA,
-      'accept-language': opts?.lang,
+      'accept-language': opts?.lang ?? undefined,
     },
     typeFilter: /^(text\/html|application\/xhtml\+xml)/,
+    followRedirects: opts?.followRedirects,
     responseTimeout: opts?.responseTimeout,
     operationTimeout: opts?.operationTimeout,
     contentLengthLimit: opts?.contentLengthLimit,
     contentLengthRequired: opts?.contentLengthRequired,
   };
+}
 
-  const headResponse = await getResponse({
-    ...args,
-    method: 'HEAD',
-  });
-
-  // SUMMALY_ALLOW_PRIVATE_IPはテスト用
-  const allowPrivateIp = process.env.SUMMALY_ALLOW_PRIVATE_IP === 'true' || Object.keys(agent).length > 0;
-  if (!allowPrivateIp && headResponse.ip && PrivateIp(headResponse.ip)) {
-    throw new StatusError(`Private IP rejected ${headResponse.ip}`, 400, 'Private IP Rejected');
-  }
+export async function scpaping(url: string, opts?: GeneralScrapingOptions) {
+  const args = getGotOptions(url, opts);
 
   const response = await getResponse({
     ...args,
@@ -109,9 +97,24 @@ export async function head(url: string) {
   });
 }
 
-async function getResponse(args: GotOptions) {
+export async function getResponse(args: GotOptions) {
   const timeout = args.responseTimeout ?? DEFAULT_RESPONSE_TIMEOUT;
   const operationTimeout = args.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
+
+  const addresses = await dnsPromises.lookup(new URL(args.url).hostname, {
+    family: 0,
+    hints: dns.ADDRCONFIG,
+    all: true,
+    order: 'verbatim',
+  });
+
+  // SUMMALY_ALLOW_PRIVATE_IPはテスト用
+  const allowPrivateIp = process.env.SUMMALY_ALLOW_PRIVATE_IP === 'true' || Object.keys(agent).length > 0;
+
+  // プライベートIPを許可しない場合、プライベートIPにアクセスできる可能性がある場合はリクエストを拒否
+  if (!allowPrivateIp && addresses.some(addr => PrivateIp(addr.address))) {
+    throw new StatusError('Private IP rejected', 400, 'Private IP Rejected');
+  }
 
   const req = got<string>(args.url, {
     method: args.method,
@@ -126,6 +129,7 @@ async function getResponse(args: GotOptions) {
       send: timeout,
       request: operationTimeout, // whole operation timeout
     },
+    followRedirect: args.followRedirects,
     agent,
     http2: false,
     retry: {
@@ -134,6 +138,11 @@ async function getResponse(args: GotOptions) {
   });
 
   const res = await receiveResponse({ req, opts: args });
+
+  // プライベートIPを許可しない場合、応答がプライベートIPの場合は表示を拒否
+  if (!allowPrivateIp && res.ip && PrivateIp(res.ip)) {
+    throw new StatusError(`Private IP rejected ${res.ip}`, 400, 'Private IP Rejected');
+  }
 
   // Check html
   const contentType = res.headers['content-type'];
@@ -171,7 +180,7 @@ async function receiveResponse<T>(args: {
   });
 
   // 応答取得 with ステータスコードエラーの整形
-  return await req.catch(e => {
+  const res = await req.catch(e => {
     if (e instanceof Got.HTTPError) {
       throw new StatusError(
         `${e.response.statusCode} ${e.response.statusMessage}`,
@@ -182,4 +191,6 @@ async function receiveResponse<T>(args: {
       throw e;
     }
   });
+
+  return res;
 }
