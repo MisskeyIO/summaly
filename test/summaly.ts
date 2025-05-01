@@ -63,6 +63,7 @@ test('basic', async () => {
     sensitive: false,
     url: hostUrl,
     activityPub: null,
+    fediverseCreator: null,
   });
 });
 

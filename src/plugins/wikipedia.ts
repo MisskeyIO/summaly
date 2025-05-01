@@ -10,7 +10,7 @@ const log = (_: string): void => {
 
 export function test(url: URL): boolean {
   if (!url.hostname) return false;
-  return url.hostname.endsWith('.wikipedia.org');
+  return /\.wikipedia\.org$/.test(url.hostname);
 }
 
 export async function summarize(url: URL): Promise<summary> {
@@ -44,5 +44,6 @@ export async function summarize(url: URL): Promise<summary> {
     },
     sitename: 'Wikipedia',
     activityPub: null,
+    fediverseCreator: null,
   };
 }

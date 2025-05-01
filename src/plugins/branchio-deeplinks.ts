@@ -1,6 +1,6 @@
 import type { URL } from 'node:url';
-import { type GeneralScrapingOptions, parseGeneral } from '../general.js';
-import type Summary from '../summary.js';
+import { type GeneralScrapingOptions, general } from '@/general.js';
+import type Summary from '@/summary.js';
 
 export function test(url: URL): boolean {
   // Branch.io を使用したディープリンクにマッチ
@@ -12,5 +12,5 @@ export async function summarize(url: URL, opts?: GeneralScrapingOptions): Promis
   // Web版に強制リダイレクトすることでbranch.ioの独自ページが開くのを防ぐ
   url.searchParams.append('$web_only', 'true');
 
-  return await parseGeneral(url, opts);
+  return await general(url, opts);
 }
