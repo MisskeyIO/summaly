@@ -1,8 +1,10 @@
-import dns, { promises as dnsPromises } from 'node:dns';
 import { readFileSync } from 'node:fs';
+import { STATUS_CODES } from 'node:http';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { GeneralScrapingOptions } from '@/general.js';
+import lookupAddresses from '@/utils/dns.js';
+import { StatusRedirect } from '@/utils/status-redirect.js';
 import * as cheerio from 'cheerio';
 import got, * as Got from 'got';
 import PrivateIp from 'private-ip';
@@ -25,7 +27,7 @@ export type GotOptions = {
   body?: string;
   headers: Record<string, string | undefined>;
   typeFilter?: RegExp;
-  followRedirects?: boolean;
+  maxRedirects?: number;
   responseTimeout?: number;
   operationTimeout?: number;
   contentLengthLimit?: number;
@@ -37,7 +39,7 @@ const repo = JSON.parse(readFileSync(`${_dirname}/../../package.json`, 'utf8'));
 export const DEFAULT_RESPONSE_TIMEOUT = 20 * 1000;
 export const DEFAULT_OPERATION_TIMEOUT = 60 * 1000;
 export const DEFAULT_MAX_RESPONSE_SIZE = 10 * 1024 * 1024;
-export const DEFAULT_BOT_UA = `SummalyBot/${repo.version}`;
+export const DEFAULT_BOT_UA = `Mozilla/5.0 (compatible; SummalyBot/${repo.version})`;
 
 export function getGotOptions(url: string, opts?: GeneralScrapingOptions): Omit<GotOptions, 'method'> {
   return {
@@ -48,7 +50,7 @@ export function getGotOptions(url: string, opts?: GeneralScrapingOptions): Omit<
       'accept-language': opts?.lang ?? undefined,
     },
     typeFilter: /^(text\/html|application\/xhtml\+xml)/,
-    followRedirects: opts?.followRedirects,
+    maxRedirects: opts?.maxRedirects ?? 3,
     responseTimeout: opts?.responseTimeout,
     operationTimeout: opts?.operationTimeout,
     contentLengthLimit: opts?.contentLengthLimit,
@@ -101,19 +103,16 @@ export async function getResponse(args: GotOptions) {
   const timeout = args.responseTimeout ?? DEFAULT_RESPONSE_TIMEOUT;
   const operationTimeout = args.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
 
-  const addresses = await dnsPromises.lookup(new URL(args.url).hostname, {
-    family: 0,
-    hints: dns.ADDRCONFIG,
-    all: true,
-    order: 'verbatim',
-  });
+  const targetUrl = new URL(args.url);
+  const addresses = await lookupAddresses(targetUrl.hostname);
 
   // SUMMALY_ALLOW_PRIVATE_IPはテスト用
   const allowPrivateIp = process.env.SUMMALY_ALLOW_PRIVATE_IP === 'true' || Object.keys(agent).length > 0;
 
   // プライベートIPを許可しない場合、プライベートIPにアクセスできる可能性がある場合はリクエストを拒否
-  if (!allowPrivateIp && addresses.some(addr => PrivateIp(addr.address))) {
-    throw new StatusError('Private IP rejected', 400, 'Private IP Rejected');
+  if (!allowPrivateIp && addresses.some(addr => PrivateIp(addr))) {
+    console.warn(`Access to Private Networks is not allowed: ${targetUrl.host}`);
+    throw new StatusError('Access to Private Networks is not allowed', targetUrl, 403, 'Forbidden');
   }
 
   const req = got<string>(args.url, {
@@ -129,7 +128,8 @@ export async function getResponse(args: GotOptions) {
       send: timeout,
       request: operationTimeout, // whole operation timeout
     },
-    followRedirect: args.followRedirects,
+    followRedirect: (args.maxRedirects ?? 3) > 0,
+    maxRedirects: args.maxRedirects ?? 3,
     agent,
     http2: false,
     retry: {
@@ -141,7 +141,37 @@ export async function getResponse(args: GotOptions) {
 
   // プライベートIPを許可しない場合、応答がプライベートIPの場合は表示を拒否
   if (!allowPrivateIp && res.ip && PrivateIp(res.ip)) {
-    throw new StatusError(`Private IP rejected ${res.ip}`, 400, 'Private IP Rejected');
+    console.warn(`Access to Private Networks is not allowed: ${targetUrl.host}(${res.ip})`);
+    throw new StatusError('Access to Private Networks is not allowed', targetUrl, 403, 'Forbidden');
+  }
+
+  // Check status code
+  if (res.statusCode < 200 || res.statusCode >= 400) {
+    throw new StatusError(
+      `Preview not available: HTTP ${res.statusCode} ${res.statusMessage ?? STATUS_CODES[res.statusCode] ?? 'Unknown'}`,
+      targetUrl,
+      res.statusCode,
+      res.statusMessage ?? STATUS_CODES[res.statusCode] ?? 'Unknown',
+    );
+  } else if (res.statusCode >= 300) {
+    const location = res.headers.location;
+    if (location) {
+      const locationUrl = new URL(location, args.url);
+      throw new StatusRedirect(
+        `Preview not available: Page redirected to ${locationUrl.href}`,
+        targetUrl,
+        res.statusCode,
+        res.statusMessage ?? STATUS_CODES[res.statusCode] ?? 'Unknown',
+        locationUrl.href,
+      );
+    } else {
+      throw new StatusError(
+        `Preview not available: HTTP ${res.statusCode} ${res.statusMessage ?? STATUS_CODES[res.statusCode] ?? 'Unknown'}`,
+        targetUrl,
+        res.statusCode,
+        res.statusMessage ?? STATUS_CODES[res.statusCode] ?? 'Unknown',
+      );
+    }
   }
 
   // Check html
@@ -180,17 +210,16 @@ async function receiveResponse<T>(args: {
   });
 
   // 応答取得 with ステータスコードエラーの整形
-  const res = await req.catch(e => {
+  return await req.catch(e => {
     if (e instanceof Got.HTTPError) {
       throw new StatusError(
         `${e.response.statusCode} ${e.response.statusMessage}`,
+        e.response.requestUrl,
         e.response.statusCode,
-        e.response.statusMessage,
+        e.response.statusMessage ?? STATUS_CODES[e.response.statusCode] ?? 'Unknown',
       );
     } else {
       throw e;
     }
   });
-
-  return res;
 }

@@ -77,7 +77,7 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
       // Allow only HTTPS for best security
       return null;
     }
-  } catch (e) {
+  } catch {
     return null;
   }
 
@@ -127,7 +127,7 @@ async function getOEmbedPlayer($: cheerio.CheerioAPI, pageUrl: string): Promise<
 export type GeneralScrapingOptions = {
   lang?: string | null;
   userAgent?: string;
-  followRedirects?: boolean;
+  maxRedirects?: number;
   responseTimeout?: number;
   operationTimeout?: number;
   contentLengthLimit?: number;
@@ -136,14 +136,14 @@ export type GeneralScrapingOptions = {
 
 export async function general(_url: URL | string, opts?: GeneralScrapingOptions): Promise<Summary | null> {
   let lang = opts?.lang;
-  if (lang && !lang.match(/^[\w-]+(\s*,\s*[\w-]+)*$/)) lang = null;
+  if (lang && !RegExp(/^[\w-]+(\s*,\s*[\w-]+)*$/).exec(lang)) lang = null;
 
   const url = typeof _url === 'string' ? new URL(_url) : _url;
 
   const res = await scpaping(url.href, {
     lang: lang || undefined,
     userAgent: opts?.userAgent,
-    followRedirects: opts?.followRedirects,
+    maxRedirects: opts?.maxRedirects,
     responseTimeout: opts?.responseTimeout,
     operationTimeout: opts?.operationTimeout,
     contentLengthLimit: opts?.contentLengthLimit,
@@ -261,7 +261,7 @@ export async function parseGeneral(
     try {
       await head(target.href);
       return target;
-    } catch (e) {
+    } catch {
       return null;
     }
   };

@@ -1,7 +1,7 @@
 import type { URL } from 'node:url';
+import type summary from '@/summary.js';
+import clip from '@/utils/clip.js';
 import { get } from '@/utils/got.js';
-import type summary from '../summary.js';
-import clip from './../utils/clip.js';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const log = (_: string): void => {
@@ -10,7 +10,7 @@ const log = (_: string): void => {
 
 export function test(url: URL): boolean {
   if (!url.hostname) return false;
-  return /\.wikipedia\.org$/.test(url.hostname);
+  return url.hostname.endsWith('.wikipedia.org');
 }
 
 export async function summarize(url: URL): Promise<summary> {

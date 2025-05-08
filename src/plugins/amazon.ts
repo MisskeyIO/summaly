@@ -1,6 +1,6 @@
 import type { URL } from 'node:url';
+import type summary from '@/summary.js';
 import { scpaping } from '@/utils/got.js';
-import type summary from '../summary.js';
 
 export function test(url: URL): boolean {
   return (

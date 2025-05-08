@@ -8,6 +8,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { summaly } from '@/index.js';
 import { StatusError } from '@/utils/status-error.js';
+import { StatusRedirect } from '@/utils/status-redirect.js';
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
 import fastify from 'fastify';
 
@@ -67,14 +68,13 @@ test('basic', async () => {
   });
 });
 
-// YouTube の仕様変更で壊れている
-test.skip('Stage Bye Stage', async () => {
+test('Stage Bye Stage', async () => {
   // If this test fails, you must rewrite the result data and the example in README.md.
 
   const summary = await summaly('https://www.youtube.com/watch?v=NMIEAhH_fTU');
-  expect(summary).toEqual({
+  expect(summary).toMatchObject({
     title: '【アイドルマスター】「Stage Bye Stage」(歌：島村卯月、渋谷凛、本田未央)',
-    icon: 'https://www.youtube.com/s/desktop/6849c09d/img/logos/favicon.ico',
+    icon: expect.stringContaining('/img/logos/favicon.ico'),
     description:
       'Website▶https://columbia.jp/idolmaster/Playlist▶https://www.youtube.com/playlist?list=PL83A2998CF3BBC86D2018年7月18日発売予定THE IDOLM@STER CINDERELLA GIRLS CG STAR...',
     thumbnail: 'https://i.ytimg.com/vi/NMIEAhH_fTU/maxresdefault.jpg',
@@ -87,7 +87,68 @@ test.skip('Stage Bye Stage', async () => {
     sitename: 'YouTube',
     sensitive: false,
     activityPub: null,
+    fediverseCreator: null,
     url: 'https://www.youtube.com/watch?v=NMIEAhH_fTU',
+  });
+});
+
+describe('maxRedirects', () => {
+  test('が設定されていない時、リダイレクト先のURLを取得できる', async () => {
+    const summary = await summaly('https://youtu.be/NMIEAhH_fTU');
+    expect(summary).toMatchObject({
+      title: '【アイドルマスター】「Stage Bye Stage」(歌：島村卯月、渋谷凛、本田未央)',
+      icon: expect.stringContaining('/img/logos/favicon.ico'),
+      description:
+        'Website▶https://columbia.jp/idolmaster/Playlist▶https://www.youtube.com/playlist?list=PL83A2998CF3BBC86D2018年7月18日発売予定THE IDOLM@STER CINDERELLA GIRLS CG STAR...',
+      thumbnail: 'https://i.ytimg.com/vi/NMIEAhH_fTU/maxresdefault.jpg',
+      player: {
+        url: 'https://www.youtube.com/embed/NMIEAhH_fTU?feature=oembed',
+        width: 200,
+        height: 113,
+        allow: ['autoplay', 'clipboard-write', 'encrypted-media', 'picture-in-picture', 'web-share', 'fullscreen'],
+      },
+      sitename: 'YouTube',
+      sensitive: false,
+      activityPub: null,
+      fediverseCreator: null,
+      url: 'https://www.youtube.com/watch?v=NMIEAhH_fTU&feature=youtu.be',
+    });
+  });
+
+  test('が1以上の時、リダイレクト先のURLを取得できる', async () => {
+    const summary = await summaly('https://youtu.be/NMIEAhH_fTU', { maxRedirects: 1 });
+    expect(summary).toMatchObject({
+      title: '【アイドルマスター】「Stage Bye Stage」(歌：島村卯月、渋谷凛、本田未央)',
+      icon: expect.stringContaining('/img/logos/favicon.ico'),
+      description:
+        'Website▶https://columbia.jp/idolmaster/Playlist▶https://www.youtube.com/playlist?list=PL83A2998CF3BBC86D2018年7月18日発売予定THE IDOLM@STER CINDERELLA GIRLS CG STAR...',
+      thumbnail: 'https://i.ytimg.com/vi/NMIEAhH_fTU/maxresdefault.jpg',
+      player: {
+        url: 'https://www.youtube.com/embed/NMIEAhH_fTU?feature=oembed',
+        width: 200,
+        height: 113,
+        allow: ['autoplay', 'clipboard-write', 'encrypted-media', 'picture-in-picture', 'web-share', 'fullscreen'],
+      },
+      sitename: 'YouTube',
+      sensitive: false,
+      activityPub: null,
+      fediverseCreator: null,
+      url: 'https://www.youtube.com/watch?v=NMIEAhH_fTU&feature=youtu.be',
+    });
+  });
+
+  test('が0の時、リダイレクト先のURLを取得できない', async () => {
+    await expect(async () => {
+      await summaly('https://google.com', { maxRedirects: 0 });
+    }).rejects.toThrowError(
+      new StatusRedirect(
+        'Preview not available: Page redirected to https://www.google.com/',
+        'https://www.google.com/',
+        301,
+        'Found',
+        'https://www.google.com/',
+      ),
+    );
   });
 });
 

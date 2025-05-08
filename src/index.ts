@@ -5,9 +5,13 @@
 
 import { EventEmitter } from 'node:events';
 import { URL } from 'node:url';
+import lookupAddresses from '@/utils/dns.js';
+import { StatusError } from '@/utils/status-error.js';
+import { StatusRedirect } from '@/utils/status-redirect.js';
 import type { FastifyInstance } from 'fastify';
 import type * as Got from 'got';
 import { got } from 'got';
+import PrivateIp from 'private-ip';
 import { type GeneralScrapingOptions, general } from './general.js';
 import type { SummalyPlugin } from './iplugin.js';
 import { plugins as builtinPlugins } from './plugins/_.js';
@@ -25,7 +29,12 @@ export type SummalyOptions = {
   lang?: string | null;
 
   /**
-   * Whether follow redirects
+   * If exceeded, the request will be aborted, 0 means redirects are not followed.
+   */
+  maxRedirects?: number;
+
+  /**
+   * (deprecated) Whether follow redirects
    */
   followRedirects?: boolean;
 
@@ -71,7 +80,7 @@ export type SummalyOptions = {
 
 export const summalyDefaultOptions = {
   lang: null,
-  followRedirects: true,
+  maxRedirects: 3,
   plugins: [],
 } as SummalyOptions;
 
@@ -81,37 +90,56 @@ export const summalyDefaultOptions = {
 export const summaly = async (url: string, options?: SummalyOptions): Promise<SummalyResult> => {
   if (options?.agent) setAgent(options.agent);
 
-  const opts = Object.assign(summalyDefaultOptions, options);
+  const opts = { ...summalyDefaultOptions, ...options };
+  if (opts.followRedirects === false) {
+    opts.maxRedirects = 0;
+  }
 
   const plugins = builtinPlugins.concat(opts.plugins || []);
 
-  let actualUrl = url;
-  if (opts.followRedirects) {
-    try {
-      const timeout = opts.responseTimeout ?? DEFAULT_RESPONSE_TIMEOUT;
-      const operationTimeout = opts.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
-      actualUrl = await got
-        .head(url, {
-          timeout: {
-            lookup: timeout,
-            connect: timeout,
-            secureConnect: timeout,
-            socket: timeout, // read timeout
-            response: timeout,
-            send: timeout,
-            request: operationTimeout, // whole operation timeout
-          },
-          agent,
-          http2: false,
-          retry: {
-            limit: 0,
-          },
-        })
-        .then(res => res.url);
-    } catch (e) {
-      actualUrl = url;
-    }
+  const requestUrl = new URL(url);
+  const addresses = await lookupAddresses(requestUrl.hostname);
+
+  // SUMMALY_ALLOW_PRIVATE_IPはテスト用
+  const allowPrivateIp = process.env.SUMMALY_ALLOW_PRIVATE_IP === 'true' || Object.keys(agent).length > 0;
+
+  // プライベートIPを許可しない場合、プライベートIPにアクセスできる可能性がある場合はリクエストを拒否
+  if (!allowPrivateIp && addresses.some(addr => PrivateIp(addr))) {
+    console.warn(`Access to Private Networks is not allowed: ${requestUrl.host}`);
+    throw new StatusError('Access to Private Networks is not allowed', requestUrl, 403, 'Forbidden');
   }
+
+  let actualUrl = url;
+  try {
+    const timeout = opts.responseTimeout ?? DEFAULT_RESPONSE_TIMEOUT;
+    const operationTimeout = opts.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
+    actualUrl = await got
+      .head(url, {
+        timeout: {
+          lookup: timeout,
+          connect: timeout,
+          secureConnect: timeout,
+          socket: timeout, // read timeout
+          response: timeout,
+          send: timeout,
+          request: operationTimeout, // whole operation timeout
+        },
+        followRedirect: (opts.maxRedirects ?? 3) > 0,
+        maxRedirects: opts.maxRedirects ?? 3,
+        agent,
+        http2: false,
+        retry: {
+          limit: 0,
+        },
+      })
+      .then(res => res.url);
+
+    if (url !== actualUrl) {
+      // リダイレクト先のURLを取得できたので、これ以上リダイレクトを追わないように
+      opts.followRedirects = false;
+      opts.maxRedirects = 0;
+    }
+  } catch {}
 
   const _url = new URL(actualUrl);
 
@@ -122,8 +150,8 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
   const scrapingOptions: GeneralScrapingOptions = {
     lang: opts.lang,
     userAgent: opts.userAgent,
+    maxRedirects: opts.maxRedirects,
     responseTimeout: opts.responseTimeout,
-    followRedirects: opts.followRedirects,
     operationTimeout: opts.operationTimeout,
     contentLengthLimit: opts.contentLengthLimit,
     contentLengthRequired: opts.contentLengthRequired,
@@ -133,7 +161,7 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
   const summary = await (match ? match.summarize : general)(_url, scrapingOptions);
 
   if (summary == null) {
-    throw new Error('failed summarize');
+    throw new Error(`Preview not available: Unable to summarize ${actualUrl}`);
   }
 
   return Object.assign(summary, {
@@ -158,17 +186,52 @@ export default function (fastify: FastifyInstance, options: SummalyOptions, done
     }
 
     try {
-      const summary = await summaly(url, {
+      return await summaly(url, {
         lang: req.query.lang as string,
-        followRedirects: false,
         ...options,
       });
-
-      return summary;
     } catch (e) {
-      return reply.status(500).send({
-        error: e,
-      });
+      if (e instanceof StatusRedirect) {
+        return reply.status(200).send(<SummalyResult>{
+          title: e.message,
+          icon: null,
+          description: null,
+          thumbnail: null,
+          player: {
+            url: null,
+            width: null,
+            height: null,
+            allow: ['autoplay', 'encrypted-media', 'fullscreen'],
+          },
+          sitename: e.requestUrl.host,
+          sensitive: false,
+          url: e.location ?? e.requestUrl.href,
+          activityPub: null,
+          fediverseCreator: null,
+        });
+      } else if (e instanceof StatusError) {
+        return reply.status(200).send(<SummalyResult>{
+          title: e.message,
+          icon: null,
+          description: null,
+          thumbnail: null,
+          player: {
+            url: null,
+            width: null,
+            height: null,
+            allow: ['autoplay', 'encrypted-media', 'fullscreen'],
+          },
+          sitename: e.requestUrl.host,
+          sensitive: false,
+          url: e.requestUrl.href,
+          activityPub: null,
+          fediverseCreator: null,
+        });
+      } else {
+        return reply.status(500).send({
+          error: e,
+        });
+      }
     }
   });
 

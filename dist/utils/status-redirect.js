@@ -1,0 +1,1 @@
+import{StatusError}from"./status-error.js";export class StatusRedirect extends StatusError{name;location;constructor(message,requestUrl,statusCode,statusMessage,location){super(message,requestUrl,statusCode,statusMessage);this.name="StatusRedirect";this.location=location}}
