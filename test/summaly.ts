@@ -5,11 +5,11 @@ import { Agent as httpAgent } from 'node:http';
 import { Agent as httpsAgent } from 'node:https';
 import { dirname } from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { URL, fileURLToPath } from 'node:url';
 import { summaly } from '@/index.js';
 import { StatusError } from '@/utils/status-error.js';
 import { StatusRedirect } from '@/utils/status-redirect.js';
-import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, test, xtest } from '@jest/globals';
 import fastify from 'fastify';
 
 const _filename = fileURLToPath(import.meta.url);
@@ -30,6 +30,15 @@ const hostUrl = `http://localhost:${port}/`;
 process.on('unhandledRejection', console.dir);
 
 let app: ReturnType<typeof fastify> | null = null;
+
+function skippableTest(name: string, fn: () => void) {
+  if (process.env.SKIP_NETWORK_TEST === 'true') {
+    console.log(`[SKIP] ${name}`);
+    xtest(name, fn);
+  } else {
+    test(name, fn);
+  }
+}
 
 afterEach(async () => {
   if (app) {
@@ -68,7 +77,7 @@ test('basic', async () => {
   });
 });
 
-test('Stage Bye Stage', async () => {
+skippableTest('Stage Bye Stage', async () => {
   // If this test fails, you must rewrite the result data and the example in README.md.
 
   const summary = await summaly('https://www.youtube.com/watch?v=NMIEAhH_fTU');
@@ -94,61 +103,105 @@ test('Stage Bye Stage', async () => {
 
 describe('maxRedirects', () => {
   test('が設定されていない時、リダイレクト先のURLを取得できる', async () => {
-    const summary = await summaly('https://youtu.be/NMIEAhH_fTU');
-    expect(summary).toMatchObject({
-      title: '【アイドルマスター】「Stage Bye Stage」(歌：島村卯月、渋谷凛、本田未央)',
-      icon: expect.stringContaining('/img/logos/favicon.ico'),
-      description:
-        'Website▶https://columbia.jp/idolmaster/Playlist▶https://www.youtube.com/playlist?list=PL83A2998CF3BBC86D2018年7月18日発売予定THE IDOLM@STER CINDERELLA GIRLS CG STAR...',
-      thumbnail: 'https://i.ytimg.com/vi/NMIEAhH_fTU/maxresdefault.jpg',
+    app = fastify();
+    app.get('/', (request, reply) => {
+      const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
+      reply.header('content-length', content.length);
+      reply.header('content-type', 'text/html');
+      return reply.send(content);
+    });
+    app.get('/redirect', (_, reply) => {
+      reply.header('location', hostUrl);
+      reply.status(302);
+      return reply.send();
+    });
+    await app.listen({ port });
+
+    const summary = await summaly(`${host}/redirect`);
+    expect(summary).toEqual({
+      title: 'KISS principle',
+      icon: null,
+      description: null,
+      thumbnail: null,
       player: {
-        url: 'https://www.youtube.com/embed/NMIEAhH_fTU?feature=oembed',
-        width: 200,
-        height: 113,
-        allow: ['autoplay', 'clipboard-write', 'encrypted-media', 'picture-in-picture', 'web-share', 'fullscreen'],
+        url: null,
+        width: null,
+        height: null,
+        allow: ['autoplay', 'encrypted-media', 'fullscreen'],
       },
-      sitename: 'YouTube',
+      sitename: 'localhost:3060',
       sensitive: false,
+      url: hostUrl,
       activityPub: null,
       fediverseCreator: null,
-      url: 'https://www.youtube.com/watch?v=NMIEAhH_fTU&feature=youtu.be',
     });
   });
 
   test('が1以上の時、リダイレクト先のURLを取得できる', async () => {
-    const summary = await summaly('https://youtu.be/NMIEAhH_fTU', { maxRedirects: 1 });
-    expect(summary).toMatchObject({
-      title: '【アイドルマスター】「Stage Bye Stage」(歌：島村卯月、渋谷凛、本田未央)',
-      icon: expect.stringContaining('/img/logos/favicon.ico'),
-      description:
-        'Website▶https://columbia.jp/idolmaster/Playlist▶https://www.youtube.com/playlist?list=PL83A2998CF3BBC86D2018年7月18日発売予定THE IDOLM@STER CINDERELLA GIRLS CG STAR...',
-      thumbnail: 'https://i.ytimg.com/vi/NMIEAhH_fTU/maxresdefault.jpg',
+    app = fastify();
+    app.get('/', (request, reply) => {
+      const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
+      reply.header('content-length', content.length);
+      reply.header('content-type', 'text/html');
+      return reply.send(content);
+    });
+    app.get('/redirect1', (_, reply) => {
+      reply.header('location', hostUrl);
+      reply.status(302);
+      return reply.send();
+    });
+    app.get('/redirect2', (_, reply) => {
+      reply.header('location', `${host}/redirect1`);
+      reply.status(302);
+      return reply.send();
+    });
+    await app.listen({ port });
+
+    const summary = await summaly(`${host}/redirect2`, { maxRedirects: 3 });
+    expect(summary).toEqual({
+      title: 'KISS principle',
+      icon: null,
+      description: null,
+      thumbnail: null,
       player: {
-        url: 'https://www.youtube.com/embed/NMIEAhH_fTU?feature=oembed',
-        width: 200,
-        height: 113,
-        allow: ['autoplay', 'clipboard-write', 'encrypted-media', 'picture-in-picture', 'web-share', 'fullscreen'],
+        url: null,
+        width: null,
+        height: null,
+        allow: ['autoplay', 'encrypted-media', 'fullscreen'],
       },
-      sitename: 'YouTube',
+      sitename: 'localhost:3060',
       sensitive: false,
+      url: hostUrl,
       activityPub: null,
       fediverseCreator: null,
-      url: 'https://www.youtube.com/watch?v=NMIEAhH_fTU&feature=youtu.be',
     });
   });
 
   test('が0の時、リダイレクト先のURLを取得できない', async () => {
+    app = fastify();
+    app.get('/', (request, reply) => {
+      const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
+      reply.header('content-length', content.length);
+      reply.header('content-type', 'text/html');
+      return reply.send(content);
+    });
+    app.get('/redirect', (_, reply) => {
+      reply.header('location', hostUrl);
+      reply.status(302);
+      return reply.send();
+    });
+    await app.listen({ port });
+
     await expect(async () => {
-      await summaly('https://google.com', { maxRedirects: 0 });
-    }).rejects.toThrowError(
-      new StatusRedirect(
-        'Preview not available: Page redirected to https://www.google.com/',
-        'https://www.google.com/',
-        301,
-        'Found',
-        'https://www.google.com/',
-      ),
-    );
+      await summaly(`${host}/redirect`, { maxRedirects: 0 });
+    }).rejects.toMatchObject({
+      name: 'StatusRedirect',
+      message: 'Preview not available: Page redirected to http://localhost:3060/',
+      requestUrl: new URL('http://localhost:3060/'),
+      statusCode: 302,
+      statusMessage: 'Found',
+      location: 'http://localhost:3060/',
+    });
   });
 });
 
