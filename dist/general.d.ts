@@ -4,7 +4,7 @@ import { scpaping } from './utils/got.js';
 export type GeneralScrapingOptions = {
     lang?: string | null;
     userAgent?: string;
-    followRedirects?: boolean;
+    maxRedirects?: number;
     responseTimeout?: number;
     operationTimeout?: number;
     contentLengthLimit?: number;

@@ -13,7 +13,12 @@ export type SummalyOptions = {
      */
     lang?: string | null;
     /**
+     * If exceeded, the request will be aborted, 0 means redirects are not followed.
+     */
+    maxRedirects?: number;
+    /**
      * Whether follow redirects
+     * @deprecated Use `maxRedirects` instead.
      */
     followRedirects?: boolean;
     /**

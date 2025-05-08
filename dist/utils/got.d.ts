@@ -9,7 +9,7 @@ export type GotOptions = {
     body?: string;
     headers: Record<string, string | undefined>;
     typeFilter?: RegExp;
-    followRedirects?: boolean;
+    maxRedirects?: number;
     responseTimeout?: number;
     operationTimeout?: number;
     contentLengthLimit?: number;

@@ -1,0 +1,1 @@
+import dns,{promises as dnsPromises}from"node:dns";export default async function lookupAddresses(hostname){return dnsPromises.lookup(hostname,{family:0,hints:dns.ADDRCONFIG,all:true,order:"verbatim"}).then(addresses=>{return addresses.map(addr=>addr.address)})}

@@ -46,7 +46,7 @@ npm run serve
 | Property                  | Type                   | Description                                                                                                                                                                         | Default                |
 |:--------------------------|:-----------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------|
 | **lang**                  | *string*               | Accept-Language for the request                                                                                                                                                     | `null`                 |
-| **followRedirects**       | *boolean*              | Whether follow redirects                                                                                                                                                            | `true`                 |
+| **maxRedirects**          | *number*               | If exceeded, the request will be aborted, 0 means redirects are not followed.                                                                                                       | `3`                    |
 | **plugins**               | *plugin[]* (see below) | Custom plugins                                                                                                                                                                      | `null`                 |
 | **agent**                 | *Got.Agents*           | Custom HTTP agent (see below)                                                                                                                                                       | `null`                 |
 | **userAgent**             | *string*               | User-Agent for the request                                                                                                                                                          | `SummalyBot/[version]` |
@@ -54,6 +54,7 @@ npm run serve
 | **operationTimeout**      | *number*               | Set the timeout from the start to the end of the request.                                                                                                                           | `60000`                |
 | **contentLengthLimit**    | *number*               | If set to true, an error will occur if the content-length value returned from the other server is larger than this parameter (or if the received body size exceeds this parameter). | `10485760`             |
 | **contentLengthRequired** | *boolean*              | If set to true, it will be an error if the other server does not return content-length.                                                                                             | `false`                |
+| **followRedirects**       | *boolean*              | (deprecated) Whether follow redirects                                                                                                                                               | `true`                 |
 
 #### Plugin
 

@@ -1,6 +1,6 @@
 {
   "name": "@misskey-dev/summaly",
-  "version": "5.2.1",
+  "version": "5.2.2",
   "description": "Get web page's summary",
   "author": "syuilo <syuilotan@yahoo.co.jp>",
   "license": "MIT",
@@ -23,13 +23,12 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@jest/globals": "29.7.0",
-    "@swc/cli": "0.7.3",
+    "@swc/cli": "0.7.5",
     "@swc/core": "1.11.24",
     "@swc/jest": "0.2.38",
-    "@types/cheerio": "0.22.35",
     "@types/debug": "4.1.12",
     "@types/escape-regexp": "0.0.3",
-    "@types/node": "22.15.3",
+    "@types/node": "22.15.17",
     "debug": "4.4.0",
     "fastify": "5.3.2",
     "jest": "29.7.0",

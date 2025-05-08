@@ -1,8 +1,10 @@
+import type { URL } from 'node:url';
 export declare class StatusError extends Error {
     name: string;
-    statusCode?: number;
-    statusMessage?: string;
+    requestUrl: URL;
+    statusCode: number;
+    statusMessage: string;
     isPermanentError: boolean;
-    constructor(message: string, statusCode?: number, statusMessage?: string);
+    constructor(message: string, requestUrl: URL, statusCode: number, statusMessage: string);
 }
 //# sourceMappingURL=status-error.d.ts.map
