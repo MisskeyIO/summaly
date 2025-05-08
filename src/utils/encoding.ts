@@ -17,7 +17,7 @@ export function detectEncoding(response: Got.Response<string>): string {
   }
 
   // From meta
-  const matchMeta = RegExp(regCharset).exec(response.rawBody.toString('ascii'));
+  const matchMeta = regCharset.exec(response.rawBody.toString('ascii'));
   if (matchMeta) {
     const candidate = matchMeta[1];
     const encoding = toEncoding(candidate);

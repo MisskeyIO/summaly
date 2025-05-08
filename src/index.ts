@@ -34,7 +34,8 @@ export type SummalyOptions = {
   maxRedirects?: number;
 
   /**
-   * (deprecated) Whether follow redirects
+   * Whether follow redirects
+   * @deprecated Use `maxRedirects` instead.
    */
   followRedirects?: boolean;
 
@@ -91,6 +92,7 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
   if (options?.agent) setAgent(options.agent);
 
   const opts = { ...summalyDefaultOptions, ...options };
+  // noinspection JSDeprecatedSymbols
   if (opts.followRedirects === false) {
     opts.maxRedirects = 0;
   }

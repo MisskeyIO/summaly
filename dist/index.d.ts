@@ -17,7 +17,8 @@ export type SummalyOptions = {
      */
     maxRedirects?: number;
     /**
-     * (deprecated) Whether follow redirects
+     * Whether follow redirects
+     * @deprecated Use `maxRedirects` instead.
      */
     followRedirects?: boolean;
     /**
