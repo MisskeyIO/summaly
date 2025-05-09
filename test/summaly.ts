@@ -8,7 +8,6 @@ import process from 'node:process';
 import { URL, fileURLToPath } from 'node:url';
 import { summaly } from '@/index.js';
 import { StatusError } from '@/utils/status-error.js';
-import { StatusRedirect } from '@/utils/status-redirect.js';
 import { afterEach, beforeEach, describe, expect, test, xtest } from '@jest/globals';
 import fastify from 'fastify';
 

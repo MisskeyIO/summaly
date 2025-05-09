@@ -194,7 +194,7 @@ export default function (fastify: FastifyInstance, options: SummalyOptions, done
       });
     } catch (e) {
       if (e instanceof StatusRedirect) {
-        return reply.status(200).send(<SummalyResult>{
+        return reply.status(200).send({
           title: e.message,
           icon: null,
           description: null,
@@ -210,9 +210,10 @@ export default function (fastify: FastifyInstance, options: SummalyOptions, done
           url: e.location ?? e.requestUrl.href,
           activityPub: null,
           fediverseCreator: null,
-        });
+          error: e,
+        } as SummalyResult & { error: Error });
       } else if (e instanceof StatusError) {
-        return reply.status(200).send(<SummalyResult>{
+        return reply.status(200).send({
           title: e.message,
           icon: null,
           description: null,
@@ -228,7 +229,8 @@ export default function (fastify: FastifyInstance, options: SummalyOptions, done
           url: e.requestUrl.href,
           activityPub: null,
           fediverseCreator: null,
-        });
+          error: e,
+        } as SummalyResult & { error: Error });
       } else {
         return reply.status(500).send({
           error: e,
