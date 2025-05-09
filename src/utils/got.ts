@@ -112,7 +112,12 @@ export async function getResponse(args: GotOptions) {
   // プライベートIPを許可しない場合、プライベートIPにアクセスできる可能性がある場合はリクエストを拒否
   if (!allowPrivateIp && addresses.some(addr => PrivateIp(addr))) {
     console.warn(`Access to Private Networks is not allowed: ${targetUrl.host}`);
-    throw new StatusError('Access to Private Networks is not allowed', targetUrl, 403, 'Forbidden');
+    throw new StatusError(
+      'Preview not available: Access to Private Networks is not allowed',
+      targetUrl,
+      403,
+      'Forbidden',
+    );
   }
 
   const req = got<string>(args.url, {
@@ -142,7 +147,12 @@ export async function getResponse(args: GotOptions) {
   // プライベートIPを許可しない場合、応答がプライベートIPの場合は表示を拒否
   if (!allowPrivateIp && res.ip && PrivateIp(res.ip)) {
     console.warn(`Access to Private Networks is not allowed: ${targetUrl.host}(${res.ip})`);
-    throw new StatusError('Access to Private Networks is not allowed', targetUrl, 403, 'Forbidden');
+    throw new StatusError(
+      'Preview not available: Access to Private Networks is not allowed',
+      targetUrl,
+      403,
+      'Forbidden',
+    );
   }
 
   // Check status code
@@ -213,7 +223,7 @@ async function receiveResponse<T>(args: {
   return await req.catch(e => {
     if (e instanceof Got.HTTPError) {
       throw new StatusError(
-        `${e.response.statusCode} ${e.response.statusMessage}`,
+        `Preview not available: HTTP ${e.response.statusCode} ${e.response.statusMessage ?? STATUS_CODES[e.response.statusCode] ?? 'Unknown'}`,
         e.response.requestUrl,
         e.response.statusCode,
         e.response.statusMessage ?? STATUS_CODES[e.response.statusCode] ?? 'Unknown',

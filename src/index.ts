@@ -108,7 +108,12 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
   // プライベートIPを許可しない場合、プライベートIPにアクセスできる可能性がある場合はリクエストを拒否
   if (!allowPrivateIp && addresses.some(addr => PrivateIp(addr))) {
     console.warn(`Access to Private Networks is not allowed: ${requestUrl.host}`);
-    throw new StatusError('Access to Private Networks is not allowed', requestUrl, 403, 'Forbidden');
+    throw new StatusError(
+      'Preview not available: Access to Private Networks is not allowed',
+      requestUrl,
+      403,
+      'Forbidden',
+    );
   }
 
   let actualUrl = url;
