@@ -16,7 +16,7 @@ import { type GeneralScrapingOptions, general } from './general.js';
 import type { SummalyPlugin } from './iplugin.js';
 import { plugins as builtinPlugins } from './plugins/_.js';
 import type { SummalyResult } from './summary.js';
-import { DEFAULT_OPERATION_TIMEOUT, DEFAULT_RESPONSE_TIMEOUT, agent, setAgent } from './utils/got.js';
+import { DEFAULT_BOT_UA, DEFAULT_OPERATION_TIMEOUT, DEFAULT_RESPONSE_TIMEOUT, agent, setAgent } from './utils/got.js';
 
 EventEmitter.defaultMaxListeners = 25;
 
@@ -122,6 +122,11 @@ export const summaly = async (url: string, options?: SummalyOptions): Promise<Su
     const operationTimeout = opts.operationTimeout ?? DEFAULT_OPERATION_TIMEOUT;
     actualUrl = await got
       .head(url, {
+        headers: {
+          accept: 'text/html,application/xhtml+xml',
+          'user-agent': opts.userAgent ?? DEFAULT_BOT_UA,
+          'accept-language': opts.lang ?? undefined,
+        },
         timeout: {
           lookup: timeout,
           connect: timeout,
