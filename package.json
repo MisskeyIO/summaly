@@ -24,7 +24,7 @@
     "@biomejs/biome": "1.9.4",
     "@jest/globals": "30.0.0",
     "@swc/cli": "0.7.7",
-    "@swc/core": "1.11.31",
+    "@swc/core": "1.12.5",
     "@swc/jest": "0.2.38",
     "@types/debug": "4.1.12",
     "@types/escape-regexp": "0.0.3",
