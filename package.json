@@ -30,7 +30,7 @@
     "@types/escape-regexp": "0.0.3",
     "@types/node": "24.0.0",
     "debug": "4.4.1",
-    "fastify": "5.3.3",
+    "fastify": "5.5.0",
     "jest": "30.0.0",
     "lefthook": "1.11.13",
     "typescript": "5.8.3"
