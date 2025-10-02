@@ -28,7 +28,7 @@
     "@swc/jest": "0.2.38",
     "@types/debug": "4.1.12",
     "@types/escape-regexp": "0.0.3",
-    "@types/node": "24.0.0",
+    "@types/node": "24.6.2",
     "debug": "4.4.1",
     "fastify": "5.3.3",
     "jest": "30.0.0",
