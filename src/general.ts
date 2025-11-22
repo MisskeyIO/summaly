@@ -1,10 +1,9 @@
 import { URL } from 'node:url';
 import * as cheerio from 'cheerio';
 import { decode as decodeHtml } from 'html-entities';
+import type { Player, default as Summary } from './summary.js';
 import cleanupTitle from './utils/cleanup-title.js';
 import clip from './utils/clip.js';
-
-import type { Player, default as Summary } from './summary.js';
 import { get, head, scpaping } from './utils/got.js';
 
 /**
@@ -215,6 +214,7 @@ export async function parseGeneral(
       $('meta[property="twitter:player:width"]').attr('content') ||
       $('meta[property="og:video:width"]').attr('content') ||
       '',
+    10,
   );
 
   const playerHeight = Number.parseInt(
@@ -222,6 +222,7 @@ export async function parseGeneral(
       $('meta[property="twitter:player:height"]').attr('content') ||
       $('meta[property="og:video:height"]').attr('content') ||
       '',
+    10,
   );
 
   let description: string | null | undefined =

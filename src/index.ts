@@ -5,18 +5,18 @@
 
 import { EventEmitter } from 'node:events';
 import { URL } from 'node:url';
-import lookupAddresses from '@/utils/dns.js';
-import { StatusError } from '@/utils/status-error.js';
-import { StatusRedirect } from '@/utils/status-redirect.js';
 import type { FastifyInstance } from 'fastify';
 import type * as Got from 'got';
 import { got } from 'got';
 import PrivateIp from 'private-ip';
+import lookupAddresses from '@/utils/dns.js';
+import { StatusError } from '@/utils/status-error.js';
+import { StatusRedirect } from '@/utils/status-redirect.js';
 import { type GeneralScrapingOptions, general } from './general.js';
 import type { SummalyPlugin } from './iplugin.js';
 import { plugins as builtinPlugins } from './plugins/_.js';
 import type { SummalyResult } from './summary.js';
-import { DEFAULT_BOT_UA, DEFAULT_OPERATION_TIMEOUT, DEFAULT_RESPONSE_TIMEOUT, agent, setAgent } from './utils/got.js';
+import { agent, DEFAULT_BOT_UA, DEFAULT_OPERATION_TIMEOUT, DEFAULT_RESPONSE_TIMEOUT, setAgent } from './utils/got.js';
 
 EventEmitter.defaultMaxListeners = 25;
 
