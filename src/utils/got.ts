@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 import { STATUS_CODES } from 'node:http';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { GeneralScrapingOptions } from '@/general.js';
-import lookupAddresses from '@/utils/dns.js';
-import { StatusRedirect } from '@/utils/status-redirect.js';
 import * as cheerio from 'cheerio';
 import got, * as Got from 'got';
 import PrivateIp from 'private-ip';
+import type { GeneralScrapingOptions } from '@/general.js';
+import lookupAddresses from '@/utils/dns.js';
+import { StatusRedirect } from '@/utils/status-redirect.js';
 import { detectEncoding, toUtf8 } from './encoding.js';
 import { StatusError } from './status-error.js';
 
@@ -205,10 +205,7 @@ export async function getResponse(args: GotOptions) {
   return res;
 }
 
-async function receiveResponse<T>(args: {
-  req: Got.CancelableRequest<Got.Response<T>>;
-  opts: GotOptions;
-}) {
+async function receiveResponse<T>(args: { req: Got.CancelableRequest<Got.Response<T>>; opts: GotOptions }) {
   const req = args.req;
   const maxSize = args.opts.contentLengthLimit ?? DEFAULT_MAX_RESPONSE_SIZE;
 

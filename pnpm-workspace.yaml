@@ -1,0 +1,6 @@
+ignorePatchFailures: false
+
+onlyBuiltDependencies:
+  - '@swc/core'
+  - esbuild
+  - lefthook

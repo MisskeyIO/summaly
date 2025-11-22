@@ -1,6 +1,6 @@
-import type { GeneralScrapingOptions } from '@/general.js';
 import * as cheerio from 'cheerio';
 import * as Got from 'got';
+import type { GeneralScrapingOptions } from '@/general.js';
 export declare let agent: Got.Agents;
 export declare function setAgent(_agent: Got.Agents): void;
 export type GotOptions = {

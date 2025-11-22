@@ -1,7 +1,7 @@
+import * as cheerio from 'cheerio';
 import { type GeneralScrapingOptions, parseGeneral } from '@/general.js';
 import type Summary from '@/summary.js';
 import { getGotOptions, getResponse } from '@/utils/got.js';
-import * as cheerio from 'cheerio';
 
 export function test(url: URL): boolean {
   return url.hostname === 'bsky.app';

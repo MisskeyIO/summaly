@@ -1,3 +1,7 @@
+/**
+ * Tests!
+ */
+
 /* dependencies below */
 
 import fs, { readdirSync } from 'node:fs';
@@ -5,11 +9,11 @@ import { Agent as httpAgent } from 'node:http';
 import { Agent as httpsAgent } from 'node:https';
 import { dirname } from 'node:path';
 import process from 'node:process';
-import { URL, fileURLToPath } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import fastify, { type FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { summaly } from '@/index.js';
 import { StatusError } from '@/utils/status-error.js';
-import { afterEach, beforeEach, describe, expect, test, xtest } from '@jest/globals';
-import fastify from 'fastify';
 
 const _filename = fileURLToPath(import.meta.url);
 const _dirname = dirname(_filename);
@@ -23,21 +27,25 @@ process.env.SUMMALY_ALLOW_PRIVATE_IP = 'true';
 
 const port = 3060;
 const host = `http://localhost:${port}`;
-const hostUrl = `http://localhost:${port}/`;
 
 // Display detail of unhandled promise rejection
 process.on('unhandledRejection', console.dir);
 
-let app: ReturnType<typeof fastify> | null = null;
+let app: FastifyInstance | null = null;
 
 function skippableTest(name: string, fn: () => void) {
   if (process.env.SKIP_NETWORK_TEST === 'true') {
     console.log(`[SKIP] ${name}`);
-    xtest(name, fn);
+    test.skip(name, fn);
   } else {
     test(name, fn);
   }
 }
+
+beforeEach(() => {
+  // Allow private IPs by default
+  process.env.SUMMALY_ALLOW_PRIVATE_IP = 'true';
+});
 
 afterEach(async () => {
   if (app) {
@@ -50,7 +58,7 @@ afterEach(async () => {
 
 test('basic', async () => {
   app = fastify();
-  app.get('/', (request, reply) => {
+  app.get('/', (_request, reply) => {
     const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
     reply.header('content-length', content.length);
     reply.header('content-type', 'text/html');
@@ -70,7 +78,7 @@ test('basic', async () => {
     },
     sitename: 'localhost:3060',
     sensitive: false,
-    url: hostUrl,
+    url: `${host}/`,
     activityPub: null,
     fediverseCreator: null,
   });
@@ -82,7 +90,7 @@ skippableTest('Stage Bye Stage', async () => {
   const summary = await summaly('https://www.youtube.com/watch?v=NMIEAhH_fTU');
   expect(summary).toMatchObject({
     title: '【アイドルマスター】「Stage Bye Stage」(歌：島村卯月、渋谷凛、本田未央)',
-    icon: expect.stringContaining('/img/logos/favicon.ico'),
+    icon: expect.stringContaining('/favicon.ico'),
     description:
       'Website▶https://columbia.jp/idolmaster/Playlist▶https://www.youtube.com/playlist?list=PL83A2998CF3BBC86D2018年7月18日発売予定THE IDOLM@STER CINDERELLA GIRLS CG STAR...',
     thumbnail: 'https://i.ytimg.com/vi/NMIEAhH_fTU/maxresdefault.jpg',
@@ -103,14 +111,14 @@ skippableTest('Stage Bye Stage', async () => {
 describe('maxRedirects', () => {
   test('が設定されていない時、リダイレクト先のURLを取得できる', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
       return reply.send(content);
     });
     app.get('/redirect', (_, reply) => {
-      reply.header('location', hostUrl);
+      reply.header('location', `${host}/`);
       reply.status(302);
       return reply.send();
     });
@@ -130,7 +138,7 @@ describe('maxRedirects', () => {
       },
       sitename: 'localhost:3060',
       sensitive: false,
-      url: hostUrl,
+      url: `${host}/`,
       activityPub: null,
       fediverseCreator: null,
     });
@@ -138,14 +146,14 @@ describe('maxRedirects', () => {
 
   test('が1以上の時、リダイレクト先のURLを取得できる', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
       return reply.send(content);
     });
     app.get('/redirect1', (_, reply) => {
-      reply.header('location', hostUrl);
+      reply.header('location', `${host}/`);
       reply.status(302);
       return reply.send();
     });
@@ -170,7 +178,7 @@ describe('maxRedirects', () => {
       },
       sitename: 'localhost:3060',
       sensitive: false,
-      url: hostUrl,
+      url: `${host}/`,
       activityPub: null,
       fediverseCreator: null,
     });
@@ -178,14 +186,14 @@ describe('maxRedirects', () => {
 
   test('が0の時、リダイレクト先のURLを取得できない', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
       return reply.send(content);
     });
     app.get('/redirect', (_, reply) => {
-      reply.header('location', hostUrl);
+      reply.header('location', `${host}/`);
       reply.status(302);
       return reply.send();
     });
@@ -206,7 +214,7 @@ describe('maxRedirects', () => {
 
 test('faviconがHTML上で指定されていないが、ルートに存在する場合、正しく設定される', async () => {
   app = fastify();
-  app.get('/', (request, reply) => {
+  app.get('/', (_request, reply) => {
     const content = fs.readFileSync(`${_dirname}/htmls/no-favicon.html`);
     reply.header('content-length', content.length);
     reply.header('content-type', 'text/html');
@@ -221,7 +229,7 @@ test('faviconがHTML上で指定されていないが、ルートに存在する
 
 test('faviconがHTML上で指定されていなくて、ルートにも存在しなかった場合 null になる', async () => {
   app = fastify();
-  app.get('/', (request, reply) => {
+  app.get('/', (_request, reply) => {
     const content = fs.readFileSync(`${_dirname}/htmls/no-favicon.html`);
     reply.header('content-length', content.length);
     reply.header('content-type', 'text/html');
@@ -236,7 +244,7 @@ test('faviconがHTML上で指定されていなくて、ルートにも存在し
 
 test('titleがcleanupされる', async () => {
   app = fastify();
-  app.get('/', (request, reply) => {
+  app.get('/', (_request, reply) => {
     const content = fs.readFileSync(`${_dirname}/htmls/og-title.html`);
     reply.header('content-length', content.length);
     reply.header('content-type', 'text/html');
@@ -252,7 +260,7 @@ describe('Private IP blocking', () => {
   beforeEach(() => {
     process.env.SUMMALY_ALLOW_PRIVATE_IP = 'false';
     app = fastify();
-    app.get('*', (request, reply) => {
+    app.get('*', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/og-title.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -297,7 +305,7 @@ describe('Private IP blocking', () => {
 describe('OGP', () => {
   test('title', async () => {
     app = fastify();
-    app.get('*', (request, reply) => {
+    app.get('*', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/og-title.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -311,7 +319,7 @@ describe('OGP', () => {
 
   test('description', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/og-description.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -325,7 +333,7 @@ describe('OGP', () => {
 
   test('site_name', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/og-site_name.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -339,7 +347,7 @@ describe('OGP', () => {
 
   test('thumbnail', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/og-image.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -355,7 +363,7 @@ describe('OGP', () => {
 describe('TwitterCard', () => {
   test('title', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/twitter-title.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -369,7 +377,7 @@ describe('TwitterCard', () => {
 
   test('description', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/twitter-description.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -383,7 +391,7 @@ describe('TwitterCard', () => {
 
   test('thumbnail', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/twitter-image.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -397,7 +405,7 @@ describe('TwitterCard', () => {
 
   test('Player detection - PeerTube:video => video', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/player-peertube-video.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -412,7 +420,7 @@ describe('TwitterCard', () => {
 
   test('Player detection - Pleroma:video => video', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/player-pleroma-video.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -427,7 +435,7 @@ describe('TwitterCard', () => {
 
   test('Player detection - Pleroma:image => image', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/player-pleroma-image.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -443,13 +451,13 @@ describe('TwitterCard', () => {
 describe('oEmbed', () => {
   const setUpFastify = async (oEmbedPath: string, htmlPath = 'htmls/oembed.html') => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(new URL(htmlPath, import.meta.url));
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
       return reply.send(content);
     });
-    app.get('/oembed.json', (request, reply) => {
+    app.get('/oembed.json', (_request, reply) => {
       const content = fs.readFileSync(new URL(oEmbedPath, new URL('oembed/', import.meta.url)));
       reply.header('content-length', content.length);
       reply.header('content-type', 'application/json');
@@ -581,7 +589,7 @@ describe('oEmbed', () => {
 describe('ActivityPub', () => {
   test('Basic', async () => {
     app = fastify();
-    app.get('*', (request, reply) => {
+    app.get('*', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/activitypub.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -595,7 +603,7 @@ describe('ActivityPub', () => {
 
   test('Null', async () => {
     app = fastify();
-    app.get('*', (request, reply) => {
+    app.get('*', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -608,10 +616,40 @@ describe('ActivityPub', () => {
   });
 });
 
+describe('Fediverse Creator', () => {
+  test('Basic', async () => {
+    app = fastify();
+    app.get('*', (_request, reply) => {
+      const content = fs.readFileSync(`${_dirname}/htmls/fediverse-creator.html`);
+      reply.header('content-length', content.length);
+      reply.header('content-type', 'text/html');
+      return reply.send(content);
+    });
+    await app.listen({ port });
+
+    const summary = await summaly(host);
+    expect(summary.fediverseCreator).toBe('@test@example.com');
+  });
+
+  test('Null', async () => {
+    app = fastify();
+    app.get('*', (_request, reply) => {
+      const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
+      reply.header('content-length', content.length);
+      reply.header('content-type', 'text/html');
+      return reply.send(content);
+    });
+    await app.listen({ port });
+
+    const summary = await summaly(host);
+    expect(summary.fediverseCreator).toBeNull();
+  });
+});
+
 describe('sensitive', () => {
   test('default', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -623,7 +661,7 @@ describe('sensitive', () => {
 
   test('mixi:content-rating 1', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/mixi-sensitive.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -635,7 +673,7 @@ describe('sensitive', () => {
 
   test('meta rating adult', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/meta-adult-sensitive.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -647,7 +685,7 @@ describe('sensitive', () => {
 
   test('meta rating rta', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/meta-rta-sensitive.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -659,7 +697,7 @@ describe('sensitive', () => {
 
   test('HTTP Header rating adult', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -672,7 +710,7 @@ describe('sensitive', () => {
 
   test('HTTP Header rating rta', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
       reply.header('content-length', content.length);
       reply.header('content-type', 'text/html');
@@ -687,7 +725,7 @@ describe('sensitive', () => {
 describe('UserAgent', () => {
   test('UA設定が反映されていること', async () => {
     const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
-    let ua: string | undefined = undefined;
+    let ua: string | undefined;
 
     app = fastify();
     app.get('/', (request, reply) => {
@@ -708,7 +746,7 @@ describe('content-length limit', () => {
     const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
 
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       reply.header('content-length', content.byteLength);
       reply.header('content-type', 'text/html');
       return reply.send(content);
@@ -722,7 +760,7 @@ describe('content-length limit', () => {
     const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
 
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       reply.header('content-length', content.byteLength);
       reply.header('content-type', 'text/html');
       return reply.send(content);
@@ -738,7 +776,7 @@ describe('content-length required', () => {
     const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
 
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       reply.header('content-length', content.byteLength);
       reply.header('content-type', 'text/html');
       return reply.send(content);
@@ -750,7 +788,7 @@ describe('content-length required', () => {
 
   test('[オプション有効化時] content-lengthが返されない場合はエラーとなること', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       reply.header('content-type', 'text/html');
       // streamで渡さないとcontent-lengthを自動で設定されてしまう
       return reply.send(fs.createReadStream(`${_dirname}/htmls/basic.html`));
@@ -764,7 +802,7 @@ describe('content-length required', () => {
     const content = fs.readFileSync(`${_dirname}/htmls/basic.html`);
 
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       reply.header('content-length', content.byteLength);
       reply.header('content-type', 'text/html');
       return reply.send(content);
@@ -776,7 +814,7 @@ describe('content-length required', () => {
 
   test('[オプション無効化時] content-lengthが返されなくてもエラーとならないこと', async () => {
     app = fastify();
-    app.get('/', (request, reply) => {
+    app.get('/', (_request, reply) => {
       reply.header('content-type', 'text/html');
       // streamで渡さないとcontent-lengthを自動で設定されてしまう
       return reply.send(fs.createReadStream(`${_dirname}/htmls/basic.html`));

@@ -1,6 +1,6 @@
 {
   "name": "@misskey-dev/summaly",
-  "version": "5.2.1-io.2",
+  "version": "5.2.5-io.1",
   "description": "Get web page's summary",
   "author": "syuilo <syuilotan@yahoo.co.jp>",
   "license": "MIT",
@@ -9,7 +9,10 @@
   "main": "./dist/index.js",
   "type": "module",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "LICENSE"],
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "pnpm run build:swc && pnpm run build:dts",
     "build:swc": "swc src -d dist -D --strip-leading-paths",
@@ -17,33 +20,30 @@
     "clean": "node scripts/clean.cjs",
     "format": "biome check --write",
     "check": "pnpm run build && biome check",
-    "test": "node --experimental-vm-modules --experimental-import-meta-resolve node_modules/jest/bin/jest.js --silent=false --verbose false",
+    "test": "vitest run",
     "serve": "pnpm dlx fastify-cli start ./dist/index.js"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
-    "@jest/globals": "30.0.0",
-    "@swc/cli": "0.7.7",
-    "@swc/core": "1.11.31",
-    "@swc/jest": "0.2.38",
+    "@biomejs/biome": "2.3.7",
+    "@jest/globals": "30.2.0",
+    "@swc/cli": "0.7.9",
+    "@swc/core": "1.15.3",
     "@types/debug": "4.1.12",
     "@types/escape-regexp": "0.0.3",
-    "@types/node": "24.0.0",
-    "debug": "4.4.1",
-    "fastify": "5.3.3",
-    "jest": "30.0.0",
-    "lefthook": "1.11.13",
-    "typescript": "5.8.3"
+    "@types/node": "24.10.1",
+    "debug": "4.4.3",
+    "fastify": "5.6.2",
+    "lefthook": "2.0.4",
+    "typescript": "5.9.3",
+    "vitest": "^4.0.13"
   },
   "dependencies": {
-    "cheerio": "1.1.0",
+    "cheerio": "1.1.2",
     "escape-regexp": "0.0.1",
-    "got": "14.4.7",
+    "got": "14.6.5",
     "html-entities": "2.6.0",
-    "iconv-lite": "0.6.3",
+    "iconv-lite": "0.7.0",
     "private-ip": "3.0.2"
   },
-  "pnpm": {
-    "neverBuiltDependencies": []
-  }
+  "packageManager": "pnpm@10.23.0+sha512.21c4e5698002ade97e4efe8b8b4a89a8de3c85a37919f957e7a0f30f38fbc5bbdd05980ffe29179b2fb6e6e691242e098d945d1601772cad0fef5fb6411e2a4b"
 }
