@@ -6,12 +6,18 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   dockle:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Build an image from Dockerfile
         uses: docker/build-push-action@v6
         with:
@@ -21,7 +27,7 @@ jobs:
           tags: |
             summaly:scan
       - name: Run dockle
-        uses: docker://goodwithtech/dockle:v0.4.14
+        uses: docker://goodwithtech/dockle:v0.4.15
         env:
           DOCKLE_OUTPUT_FORMAT: list
           DOCKLE_EXIT_CODE: 1
