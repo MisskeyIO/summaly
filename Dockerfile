@@ -9,8 +9,8 @@ ARG GID="991"
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
- libjemalloc-dev libjemalloc2 \
- && ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so \
+ libmimalloc-dev libmimalloc2.0 \
+ && ln -s /usr/lib/$(uname -m)-linux-gnu/libmimalloc.so.2 /usr/local/lib/libmimalloc.so \
  && groupadd -g "${GID}" summaly \
  && useradd -l -u "${UID}" -g "${GID}" -m -d /app summaly \
  && find / -type d -path /sys -prune -o -type d -path /proc -prune -o -type f -perm /u+s -ignore_readdir_race -exec chmod u-s {} \; \
@@ -27,8 +27,8 @@ ENV NODE_ENV=production
 RUN pnpm i --frozen-lockfile --aggregate-output \
  && pnpm install fastify-cli
 
-ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so
-ENV MALLOC_CONF=background_thread:true,metadata_thp:auto,dirty_decay_ms:30000,muzzy_decay_ms:30000
+ENV LD_PRELOAD=/usr/local/lib/libmimalloc.so
+ENV MIMALLOC_LARGE_OS_PAGES=0
 
 CMD ["pnpm", "fastify", "start", "./dist/index.js"]
 
