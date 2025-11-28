@@ -19,17 +19,18 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists \
  && npm install -g pnpm@10
 
-USER summaly
 WORKDIR /app
-COPY --chown=summaly:summaly . ./
+COPY . ./
 
 ENV NODE_ENV=production
-RUN pnpm i --force --frozen-lockfile --aggregate-output \
- && pnpm install fastify-cli
+RUN pnpm i --frozen-lockfile --aggregate-output \
+ && pnpm install fastify-cli \
+ && chown -hR summaly:summaly /app
 
 ENV LD_PRELOAD=/usr/local/lib/libmimalloc.so
 ENV MIMALLOC_LARGE_OS_PAGES=0
 
+USER summaly
 CMD ["pnpm", "fastify", "start", "./dist/index.js"]
 
 EXPOSE 3000
