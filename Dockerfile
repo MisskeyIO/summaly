@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --chown=summaly:summaly . ./
 
 ENV NODE_ENV=production
-RUN pnpm i --frozen-lockfile --aggregate-output \
+RUN pnpm i --force --frozen-lockfile --aggregate-output \
  && pnpm install fastify-cli
 
 ENV LD_PRELOAD=/usr/local/lib/libmimalloc.so
