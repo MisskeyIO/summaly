@@ -24,23 +24,23 @@
     "serve": "pnpm dlx fastify-cli start ./dist/index.js"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.8",
+    "@biomejs/biome": "2.3.10",
     "@jest/globals": "30.2.0",
     "@swc/cli": "0.7.9",
-    "@swc/core": "1.15.3",
+    "@swc/core": "1.15.8",
     "@types/debug": "4.1.12",
     "@types/escape-regexp": "0.0.3",
-    "@types/node": "24.10.1",
+    "@types/node": "25.0.3",
     "debug": "4.4.3",
     "fastify": "5.6.2",
-    "lefthook": "2.0.4",
+    "lefthook": "2.0.13",
     "typescript": "5.9.3",
-    "vitest": "^4.0.13"
+    "vitest": "^4.0.16"
   },
   "dependencies": {
     "cheerio": "1.1.2",
     "escape-regexp": "0.0.1",
-    "got": "14.6.5",
+    "got": "14.6.6",
     "html-entities": "2.6.0",
     "iconv-lite": "0.7.0",
     "private-ip": "3.0.2"
