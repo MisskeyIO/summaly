@@ -24,7 +24,7 @@
     "serve": "pnpm dlx fastify-cli start ./dist/index.js"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.10",
+    "@biomejs/biome": "2.3.11",
     "@jest/globals": "30.2.0",
     "@swc/cli": "0.7.9",
     "@swc/core": "1.15.8",
