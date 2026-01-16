@@ -32,7 +32,7 @@
     "@types/escape-regexp": "0.0.3",
     "@types/node": "~22",
     "debug": "4.4.3",
-    "fastify": "5.6.2",
+    "fastify": "5.7.1",
     "lefthook": "2.0.15",
     "typescript": "5.9.3",
     "vitest": "^4.0.17"
